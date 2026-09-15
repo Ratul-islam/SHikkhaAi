@@ -1,0 +1,17 @@
+{
+  "name": "shikkha-ai",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/server & npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=packages/database && npm run build --workspace=apps/server && npm run build --workspace=apps/web",
+    "db:push": "npm run db:push --workspace=packages/database",
+    "db:studio": "npm run db:studio --workspace=packages/database"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

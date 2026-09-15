@@ -1,0 +1,48 @@
+FROM python:3.14-slim
+
+# Install system dependencies for Manim and Node.js
+RUN apt-get update && apt-get install -y \
+    curl \
+    ffmpeg \
+    libcairo2-dev \
+    libpango1.0-dev \
+    texlive \
+    texlive-latex-extra \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs
+
+WORKDIR /app
+
+# Install Python dependencies for Manim
+# We copy this first to cache the pip install step
+COPY apps/server/manim-requirements.txt ./
+RUN pip install --no-cache-dir -r manim-requirements.txt
+
+# Copy package.json files to cache npm install
+COPY package.json package-lock.json ./
+COPY apps/server/package.json apps/server/
+COPY apps/web/package.json apps/web/
+COPY packages/database/package.json packages/database/
+
+# Install Node dependencies across the monorepo
+RUN npm ci
+
+# Copy the rest of the monorepo
+COPY . .
+
+# Generate Prisma client and build the backend server
+RUN npm run build --workspace=packages/database
+RUN npm run build --workspace=apps/server
+
+# Set environment variables for production
+ENV NODE_ENV=production
+ENV PORT=4000
+
+# Expose the backend port
+EXPOSE 4000
+
+# Start the Fastify backend
+CMD ["npm", "run", "start", "--workspace=apps/server"]

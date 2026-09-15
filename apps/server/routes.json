@@ -1,0 +1,701 @@
+{
+  "description": "ShikkhaAI API — every route registered in apps/server/src/app.ts. Base path for all routes is the server origin (e.g. http://localhost:4000); prefixes below are appended to that.",
+  "baseUrl": "http://localhost:4000",
+  "auth": {
+    "note": "Bearer auth via 'Authorization: Bearer <accessToken>' unless a route says 'none'. authenticate = valid access token required. requireVerified = also requires emailVerified=true. requireAdmin = also requires role=ADMIN. A refresh token is also set as an HttpOnly cookie ('shikkha_refresh') on login/register/refresh/oauth."
+  },
+  "routeGroups": [
+    {
+      "prefix": "/api/v1/auth",
+      "file": "modules/auth/auth.routes.ts + modules/auth/oauth.routes.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/register",
+          "description": "Creates a new student/admin account with a hashed password, sends an email-verification OTP (best-effort), and immediately issues a token pair.",
+          "auth": "none",
+          "payload": {
+            "type": "RegisterRequestBody (JSON body)",
+            "shape": { "email": "string (email format)", "password": "string (min 8 chars)", "name": "string (min 1)", "classLevel": "integer (1-12)" }
+          },
+          "response": {
+            "success": { "status": 201, "type": "AuthTokenResponse", "shape": { "accessToken": "string (JWT)", "user": "AuthUserView { id, email, name, role: 'STUDENT'|'ADMIN', classLevel, xp, streakDays, emailVerified, avatarUrl: string|null }" } },
+            "errors": [{ "status": 409, "type": "ErrorResponse { error: string }", "when": "email already registered" }]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/login",
+          "description": "Authenticates by email/password, revokes prior refresh tokens, and issues a fresh token pair.",
+          "auth": "none",
+          "payload": { "type": "LoginRequestBody (JSON body)", "shape": { "email": "string (email format)", "password": "string" } },
+          "response": {
+            "success": { "status": 200, "type": "AuthTokenResponse", "shape": { "accessToken": "string (JWT)", "user": "AuthUserView" } },
+            "errors": [{ "status": 401, "type": "ErrorResponse", "when": "invalid email or password" }]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/refresh",
+          "description": "Trades the HttpOnly refresh cookie for a new access/refresh token pair. Used on page load and by the OAuth callback page.",
+          "auth": "none (reads the 'shikkha_refresh' cookie)",
+          "payload": { "type": "none", "shape": null },
+          "response": {
+            "success": { "status": 200, "type": "AuthTokenResponse", "shape": { "accessToken": "string (JWT)", "user": "AuthUserView" } },
+            "errors": [{ "status": 401, "type": "ErrorResponse", "when": "missing, invalid, or expired refresh token" }]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/logout",
+          "description": "Revokes the current session's refresh token and clears its cookies.",
+          "auth": "authenticate",
+          "payload": { "type": "none", "shape": null },
+          "response": { "success": { "status": 204, "type": "no content" } }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/logout-all",
+          "description": "\"Sign out of all devices\" — revokes every refresh token for the user, including this session's.",
+          "auth": "authenticate",
+          "payload": { "type": "none", "shape": null },
+          "response": { "success": { "status": 204, "type": "no content" } }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/verify-email",
+          "description": "Confirms a 6-digit OTP sent to the user's email and marks the account verified, re-issuing tokens with the updated flag.",
+          "auth": "none",
+          "payload": { "type": "VerifyEmailRequestBody (JSON body)", "shape": { "email": "string (email format)", "code": "string (exactly 6 chars)" } },
+          "response": {
+            "success": { "status": 200, "type": "AuthTokenResponse", "shape": { "accessToken": "string (JWT)", "user": "AuthUserView" } },
+            "errors": [
+              { "status": 400, "type": "ErrorResponse", "when": "unknown email, or invalid/expired code" },
+              { "status": 429, "type": "ErrorResponse", "when": "too many incorrect attempts — code locked" }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/resend-verification",
+          "description": "Re-sends the email-verification OTP. Always responds 200 regardless of account existence/verified state, to avoid leaking which emails are registered. Rate-limited (5 per 15 min per IP+route).",
+          "auth": "none",
+          "payload": { "type": "ResendVerificationRequestBody (JSON body)", "shape": { "email": "string (email format)" } },
+          "response": { "success": { "status": 200, "type": "MessageResponse { message: string }" } }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/forgot-password",
+          "description": "Sends a password-reset OTP. Always responds 200 regardless of account existence, to avoid leaking account existence. Rate-limited (5 per 15 min per IP+route).",
+          "auth": "none",
+          "payload": { "type": "ForgotPasswordRequestBody (JSON body)", "shape": { "email": "string (email format)" } },
+          "response": { "success": { "status": 200, "type": "MessageResponse { message: string }" } }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/auth/reset-password",
+          "description": "Confirms a password-reset OTP and sets a new password, then revokes every existing session (treated like a credential rotation). Rate-limited (5 per 15 min per IP+route).",
+          "auth": "none",
+          "payload": { "type": "ResetPasswordRequestBody (JSON body)", "shape": { "email": "string (email format)", "code": "string (exactly 6 chars)", "newPassword": "string (min 8 chars)" } },
+          "response": {
+            "success": { "status": 200, "type": "MessageResponse { message: string }" },
+            "errors": [
+              { "status": 400, "type": "ErrorResponse", "when": "unknown email, or invalid/expired code" },
+              { "status": 429, "type": "ErrorResponse", "when": "too many incorrect attempts — code locked" }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/google",
+          "description": "Redirects the browser to Google's OAuth consent screen. Disabled (503) if Google OAuth env vars are not configured.",
+          "auth": "none",
+          "payload": { "type": "none", "shape": null },
+          "response": { "success": { "status": 302, "type": "redirect to accounts.google.com" }, "errors": [{ "status": 503, "type": "ErrorResponse", "when": "Google sign-in not configured" }] }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/google/callback",
+          "description": "Google's OAuth redirect target. Exchanges the auth code, verifies the ID token, finds-or-creates the user (linking by email if an account already exists), sets refresh/role cookies, and redirects to the frontend's /oauth/callback page (which then calls POST /auth/refresh to get an access token).",
+          "auth": "none",
+          "payload": { "type": "Querystring", "shape": { "code": "string (optional)", "error": "string (optional)" } },
+          "response": { "success": { "status": 302, "type": "redirect to WEB_APP_URL/oauth/callback" }, "errors": [{ "status": 302, "type": "redirect to WEB_APP_URL/login?error=oauth_failed", "when": "denied, missing code, or verification failure" }] }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/github",
+          "description": "Redirects the browser to GitHub's OAuth authorize screen. Disabled (503) if GitHub OAuth env vars are not configured.",
+          "auth": "none",
+          "payload": { "type": "none", "shape": null },
+          "response": { "success": { "status": 302, "type": "redirect to github.com/login/oauth/authorize" }, "errors": [{ "status": 503, "type": "ErrorResponse", "when": "GitHub sign-in not configured" }] }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/auth/github/callback",
+          "description": "GitHub's OAuth redirect target. Exchanges the code for an access token, fetches the user profile and verified primary email, finds-or-creates the user, sets cookies, and redirects to the frontend's /oauth/callback page.",
+          "auth": "none",
+          "payload": { "type": "Querystring", "shape": { "code": "string (optional)", "error": "string (optional)" } },
+          "response": { "success": { "status": 302, "type": "redirect to WEB_APP_URL/oauth/callback" }, "errors": [{ "status": 302, "type": "redirect to WEB_APP_URL/login?error=oauth_failed", "when": "denied, missing code, no verified email, or exchange failure" }] }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/chat",
+      "file": "modules/chat/chat.routes.ts + modules/chat/timestamp-ask.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/chat/",
+          "description": "The main tutoring endpoint. Sends a student message and gets back the Orchestrator's decision on how to answer — plain text, an interactive canvas widget, or a video lesson brief — grounded in retrieved NCTB textbook context and the student's adaptive profile. Rate-limited.",
+          "auth": "authenticate + requireVerified",
+          "payload": {
+            "type": "ChatRequestBody (JSON body)",
+            "shape": { "message": "string (min 1)", "subject": "string (min 1)", "chapter": "integer (>=1)", "nodeId": "string (optional — active guided-lesson node)" }
+          },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "ChatResponse",
+              "shape": {
+                "responseType": "'TEXT' | 'CANVAS' | 'VIDEO'",
+                "reasoning": "string (internal, not shown to student)",
+                "content": "string (the answer / explanation)",
+                "videoBrief": "VideoBrief { title, conceptKey, goal, analogy? } — present only if responseType='VIDEO'",
+                "visualHtml": "string (sandboxed HTML/SVG widget) — present only if responseType='CANVAS'",
+                "suggestions": "string[] (optional follow-up prompts in the student's voice)",
+                "profileSnapshot": "ProfileSnapshot { classLevel, visualPreferenceScore, languageMix, tutorModeLabel }"
+              }
+            },
+            "errors": [{ "status": 500, "type": "ErrorResponse", "when": "generation failed" }]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/chat/stream",
+          "description": "Server-Sent Events version of POST /chat/ — same underlying generation, same response payload, but emits 'stage' events as real async steps start (retrieval, model call, persistence) before a final 'final' event with the complete ChatResponse.",
+          "auth": "authenticate + requireVerified",
+          "payload": { "type": "ChatRequestBody (JSON body)", "shape": "same as POST /api/v1/chat/" },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "text/event-stream",
+              "shape": "Sequence of SSE events: 'event: stage\\ndata: {\"stage\": string}\\n\\n' (0+ times), then either 'event: final\\ndata: <ChatResponse JSON>\\n\\n' or 'event: error\\ndata: {\"error\": string}\\n\\n'"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/chat/history",
+          "description": "Hydrates the chat page on load with the full stored conversation for a (subject, chapter) pair, up to 50 messages.",
+          "auth": "authenticate",
+          "payload": { "type": "Querystring", "shape": { "subject": "string (min 1)", "chapter": "string (numeric)" } },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "{ messages: ChatMessageRecord[] }",
+              "shape": {
+                "messages": [
+                  {
+                    "id": "string",
+                    "role": "'user' | 'assistant'",
+                    "content": "string",
+                    "responseType": "'TEXT'|'CANVAS'|'VIDEO'|null",
+                    "reasoning": "string|null",
+                    "videoBrief": "VideoBrief|null",
+                    "videoScript": "VideoScript|null (legacy, pre-Manim-pipeline turns only)",
+                    "visualHtml": "string|null",
+                    "suggestions": "string[]",
+                    "createdAt": "string (ISO datetime)"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/chat/conversations",
+          "description": "Lists the student's distinct (subject, chapter) conversation threads for the chat sidebar, most recent first.",
+          "auth": "authenticate",
+          "payload": { "type": "none", "shape": null },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "{ conversations: ConversationSummary[] }",
+              "shape": { "conversations": [{ "subject": "string", "chapter": "number", "title": "string", "lastMessageAt": "string (ISO datetime)", "lastMessagePreview": "string" }] }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/chat/timestamp-ask",
+          "description": "Answers a follow-up question about a specific moment the student paused a video lesson on — grounded in NCTB context, answered briefly (2-3 sentences) rather than as a full new lesson. Rate-limited.",
+          "auth": "authenticate + requireVerified",
+          "payload": {
+            "type": "TimestampAskRequestBody (JSON body)",
+            "shape": { "videoId": "string (client-supplied correlation id, not persisted)", "timestampMs": "number (>=0)", "spokenSentence": "string", "userQuestion": "string", "subject": "string", "chapter": "integer (>=1)" }
+          },
+          "response": {
+            "success": { "status": 200, "type": "TimestampAskResponse { explanation: string }" },
+            "errors": [{ "status": 500, "type": "ErrorResponse", "when": "generation failed" }]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/lessons",
+      "file": "modules/chat/lesson.routes.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/lessons/:nodeId/start",
+          "description": "Starts a new guided-lesson session for a roadmap node (generating a teaching outline and a proactive first AI turn) or resumes an already-ACTIVE one. Rate-limited.",
+          "auth": "authenticate + requireVerified",
+          "payload": { "type": "URL param", "shape": { "nodeId": "string (path param)" } },
+          "response": {
+            "success": {
+              "status": 201,
+              "type": "StartLessonResponse",
+              "shape": {
+                "sessionId": "string",
+                "nodeId": "string",
+                "nodeTitle": "string",
+                "subject": "string",
+                "chapter": "number",
+                "outline": "LessonStep[] { title, goal }[]",
+                "currentStep": "number",
+                "status": "'ACTIVE' | 'READY_FOR_MASTERY' | 'ABANDONED'",
+                "turn": "LessonTurn|null { responseType, reasoning, content, videoBrief?, visualHtml?, suggestions? } — null when resuming an existing session"
+              }
+            },
+            "errors": [
+              { "status": 404, "type": "ErrorResponse", "when": "node not found" },
+              { "status": 403, "type": "ErrorResponse", "when": "node's prerequisites not yet completed" },
+              { "status": 503, "type": "ErrorResponse", "when": "outline generation failed — try again" },
+              { "status": 500, "type": "ErrorResponse", "when": "unexpected failure" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/admin",
+      "file": "modules/ingestion/ingestion.routes.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/admin/ingest-pdf",
+          "description": "Admin-only: uploads an NCTB textbook PDF, extracts and chunks its text (800 chars/100 overlap), embeds each chunk, and stores it in the pgvector-backed DocumentChunk table for retrieval.",
+          "auth": "authenticate + requireAdmin",
+          "payload": {
+            "type": "multipart/form-data",
+            "shape": { "file": "PDF binary (application/pdf, max 25MB)", "classLevel": "form field, integer 1-12", "subject": "form field, string", "chapter": "form field, integer >=1" }
+          },
+          "response": {
+            "success": { "status": 201, "type": "IngestPdfResponse", "shape": { "chunksInserted": "number", "classLevel": "number", "subject": "string", "chapter": "number" } },
+            "errors": [
+              { "status": 400, "type": "ErrorResponse", "when": "no file, wrong mimetype, or missing/invalid classLevel/subject/chapter fields" },
+              { "status": 413, "type": "ErrorResponse", "when": "PDF exceeds 25MB" },
+              { "status": 500, "type": "ErrorResponse", "when": "ingestion failed" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/roadmap",
+      "file": "modules/roadmap/roadmap.routes.ts",
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/roadmap/",
+          "description": "Returns the student's Duolingo-style roadmap: every CurriculumNode for a class/subject with its lock/unlock/completed status and score, computed from prerequisites and UserProgress.",
+          "auth": "authenticate",
+          "payload": { "type": "Querystring", "shape": { "classLevel": "integer 1-12 (optional, defaults to user's own class)", "subject": "string (optional)" } },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "RoadmapResponse",
+              "shape": { "nodes": [{ "id": "string", "classLevel": "number", "subject": "string", "chapterNumber": "number", "title": "string", "description": "string", "prerequisites": "string[]", "orderIndex": "number", "totalXp": "number", "status": "'LOCKED'|'UNLOCKED'|'COMPLETED'", "score": "number|null" }] }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/admin/nodes",
+      "file": "modules/nodes/nodes.routes.ts",
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/admin/nodes/",
+          "description": "Admin-only: lists every CurriculumNode, ordered by orderIndex.",
+          "auth": "authenticate + requireAdmin",
+          "payload": { "type": "none", "shape": null },
+          "response": { "success": { "status": 200, "type": "NodeListResponse", "shape": { "nodes": "CurriculumNodeView[]" } } }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/admin/nodes/",
+          "description": "Admin-only: hand-creates a single CurriculumNode directly (not synthesized).",
+          "auth": "authenticate + requireAdmin",
+          "payload": {
+            "type": "CreateNodeBody (JSON body)",
+            "shape": { "classLevel": "integer 1-12", "subject": "string", "chapterNumber": "integer >=1", "title": "string", "description": "string", "prerequisites": "string[] (node UUIDs)", "orderIndex": "integer", "totalXp": "integer (optional, default 100)" }
+          },
+          "response": {
+            "success": {
+              "status": 201,
+              "type": "CurriculumNodeView",
+              "shape": { "id": "string", "classLevel": "number", "subject": "string", "chapterNumber": "number", "title": "string", "description": "string", "prerequisites": "string[]", "orderIndex": "number", "totalXp": "number", "sourcePages": "number[]", "synthesized": "boolean" }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/admin/nodes/bulk",
+          "description": "Admin-only: commits a reviewed Level Synthesis draft. Validates the tempKey prerequisite graph (no duplicates/unknown refs/self-refs/cycles) then creates every node and resolves tempKey prerequisites into real UUIDs, all inside one transaction.",
+          "auth": "authenticate + requireAdmin",
+          "payload": {
+            "type": "BulkCreateNodesBody (JSON body)",
+            "shape": {
+              "classLevel": "integer 1-12",
+              "subject": "string",
+              "chapterNumber": "integer >=1",
+              "levels": [{ "tempKey": "string", "title": "string", "description": "string", "orderIndex": "integer", "prerequisiteKeys": "string[] (tempKeys, not UUIDs)", "totalXp": "integer (optional)", "sourcePages": "number[] (optional)" }]
+            }
+          },
+          "response": {
+            "success": { "status": 201, "type": "BulkCreateNodesResponse", "shape": { "created": "number", "nodes": "CurriculumNodeView[]" } },
+            "errors": [
+              { "status": 400, "type": "ErrorResponse", "when": "invalid prerequisite graph (duplicate/unknown/self-ref/cycle)" },
+              { "status": 500, "type": "ErrorResponse", "when": "transaction failed" }
+            ]
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/admin/nodes/:id",
+          "description": "Admin-only: partially updates one CurriculumNode.",
+          "auth": "authenticate + requireAdmin",
+          "payload": {
+            "type": "UpdateNodeBody (JSON body) + URL param",
+            "shape": { "id": "string (path param)", "classLevel": "integer 1-12 (optional)", "subject": "string (optional)", "chapterNumber": "integer (optional)", "title": "string (optional)", "description": "string (optional)", "prerequisites": "string[] (optional)", "orderIndex": "integer (optional)", "totalXp": "integer (optional)" }
+          },
+          "response": {
+            "success": { "status": 200, "type": "CurriculumNodeView" },
+            "errors": [{ "status": 404, "type": "ErrorResponse", "when": "node not found" }]
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/v1/admin/nodes/:id",
+          "description": "Admin-only: deletes one CurriculumNode.",
+          "auth": "authenticate + requireAdmin",
+          "payload": { "type": "URL param", "shape": { "id": "string (path param)" } },
+          "response": {
+            "success": { "status": 204, "type": "no content" },
+            "errors": [{ "status": 404, "type": "ErrorResponse", "when": "node not found" }]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/progress",
+      "file": "modules/progress/progress.routes.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/progress/complete",
+          "description": "DEPRECATED — always returns 400. Node completion is now a consequence of passing a Mastery Check (server-graded), never a client assertion; use POST /mastery/:nodeId/start then POST /mastery/:attemptId/submit instead.",
+          "auth": "authenticate",
+          "payload": { "type": "CompleteProgressBody (JSON body)", "shape": { "nodeId": "string" } },
+          "response": {
+            "success": null,
+            "errors": [{ "status": 400, "type": "ErrorResponse", "when": "always — endpoint is deprecated", "message": "Levels are completed by passing their Mastery Check. POST /api/v1/mastery/:nodeId/start, then /api/v1/mastery/:attemptId/submit." }]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/profile",
+      "file": "modules/profile/profile.routes.ts",
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/profile/me",
+          "description": "Returns the authenticated user's full profile (identity, role, XP, streak, settings).",
+          "auth": "authenticate",
+          "payload": { "type": "none", "shape": null },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "ProfileView",
+              "shape": {
+                "id": "string", "email": "string", "name": "string", "address": "string|null", "phone": "string|null", "avatarUrl": "string|null",
+                "role": "'STUDENT'|'ADMIN'", "classLevel": "number", "emailVerified": "boolean", "xp": "number", "streakDays": "number",
+                "settings": { "theme": "'LIGHT'|'DARK'|'SYSTEM'", "emailNotifications": "boolean", "dailyXpGoal": "number", "preferredSubject": "string|null", "timezone": "string", "reducedMotion": "boolean" }
+              }
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/profile/me",
+          "description": "Partially updates the user's name/address/phone.",
+          "auth": "authenticate",
+          "payload": { "type": "UpdateProfileBody (JSON body, at least 1 field)", "shape": { "name": "string (optional)", "address": "string|null (optional)", "phone": "string|null (optional)" } },
+          "response": { "success": { "status": 200, "type": "ProfileView" } }
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/profile/class",
+          "description": "Changes the user's class level. Re-issues the access token immediately (classLevel is baked into the JWT) and sets fresh cookies.",
+          "auth": "authenticate",
+          "payload": { "type": "UpdateClassBody (JSON body)", "shape": { "classLevel": "integer 1-12" } },
+          "response": { "success": { "status": 200, "type": "UpdateClassResponse", "shape": { "accessToken": "string (JWT)", "profile": "ProfileView" } } }
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/profile/settings",
+          "description": "Partially updates user-facing settings (theme, notifications, daily XP goal, preferred subject, timezone, reduced motion).",
+          "auth": "authenticate",
+          "payload": {
+            "type": "UpdateSettingsBody (JSON body, at least 1 field)",
+            "shape": { "theme": "'LIGHT'|'DARK'|'SYSTEM' (optional)", "emailNotifications": "boolean (optional)", "dailyXpGoal": "integer 1-1000 (optional)", "preferredSubject": "string|null (optional)", "timezone": "string (optional)", "reducedMotion": "boolean (optional)" }
+          },
+          "response": { "success": { "status": 200, "type": "ProfileView" } }
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/v1/profile/avatar",
+          "description": "Sets a new avatar — either a regenerated deterministic default, or a provided URL/data-URI (from a file upload or pasted link).",
+          "auth": "authenticate",
+          "payload": {
+            "type": "UpdateAvatarBody (JSON body, exactly 1 of the 2 fields)",
+            "shape": { "regenerate": "true (optional)", "avatarUrl": "string — http(s):// URL or data:image/... URI, max ~750KB base64 (optional)" }
+          },
+          "response": {
+            "success": { "status": 200, "type": "ProfileView" },
+            "errors": [{ "status": 400, "type": "ErrorResponse", "when": "invalid avatar input" }]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/profile/stats",
+          "description": "Returns aggregate learning stats for the settings/dashboard view — XP, streak, mastery pass rate, per-class progression, today's XP against the daily goal.",
+          "auth": "authenticate",
+          "payload": { "type": "none", "shape": null },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "ProfileStatsResponse",
+              "shape": {
+                "totalXp": "number", "streakDays": "number", "masteryAttemptsCount": "number", "masteryPassRate": "number|null",
+                "completedNodesCount": "number", "dailyXpGoal": "number", "todayXp": "number",
+                "perClass": [{ "classLevel": "number", "totalNodes": "number", "completedNodes": "number", "averageScore": "number|null", "xpEarned": "number" }]
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/profile/badges",
+          "description": "Lists gamification badges the user has earned.",
+          "auth": "authenticate",
+          "payload": { "type": "none", "shape": null },
+          "response": {
+            "success": { "status": 200, "type": "{ badges: EarnedBadgeView[] }", "shape": { "badges": [{ "key": "string", "title": "string", "description": "string", "icon": "string", "earnedAt": "string (ISO datetime)" }] } }
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/mastery",
+      "file": "modules/mastery/mastery.routes.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/mastery/:nodeId/start",
+          "description": "Starts a Mastery Check for a roadmap node — generates 5 MCQ questions from the node's retrieved NCTB context and persists the full paper (with answer key) server-side. Only the student-safe view (no answer key) is returned. Rate-limited.",
+          "auth": "authenticate + requireVerified",
+          "payload": { "type": "URL param", "shape": { "nodeId": "string (path param)" } },
+          "response": {
+            "success": {
+              "status": 201,
+              "type": "StartMasteryResponse",
+              "shape": { "attemptId": "string", "nodeId": "string", "nodeTitle": "string", "questions": "ClientMasteryQuestion[] { id, questionType: 'MCQ', prompt, options: string[] } (no answer key)", "passThreshold": "number (70)" }
+            },
+            "errors": [
+              { "status": 404, "type": "ErrorResponse", "when": "node not found" },
+              { "status": 403, "type": "ErrorResponse", "when": "node's prerequisites not yet completed" },
+              { "status": 503, "type": "ErrorResponse", "when": "question generation failed — try again" },
+              { "status": 500, "type": "ErrorResponse", "when": "unexpected failure" }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/mastery/:attemptId/submit",
+          "description": "Grades a Mastery Check attempt against the server-held answer key, and — if it passes — completes the node (awards XP, cascades unlocks). This is the ONLY path that can complete a node/write UserProgress.score. Rate-limited.",
+          "auth": "authenticate + requireVerified",
+          "payload": {
+            "type": "SubmitMasteryBody (JSON body) + URL param",
+            "shape": { "attemptId": "string (path param)", "answers": [{ "questionId": "string", "selectedIndex": "integer >=0" }] }
+          },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "SubmitMasteryResponse",
+              "shape": {
+                "attemptId": "string", "nodeId": "string", "score": "number (0-100)", "passed": "boolean", "passThreshold": "number",
+                "correctCount": "number", "totalQuestions": "number",
+                "results": [{ "questionId": "string", "prompt": "string", "options": "string[]", "selectedIndex": "number|null", "correctIndex": "number", "correct": "boolean", "explanation": "string", "sourcePage": "number|null" }],
+                "progress": "CompleteProgressResponse|null { nodeId, xpAwarded, totalXp, newlyUnlockedNodeIds: string[] } — present only if passed",
+                "newBadges": [{ "key": "string", "title": "string", "description": "string", "icon": "string" }]
+              }
+            },
+            "errors": [
+              { "status": 404, "type": "ErrorResponse", "when": "attempt not found" },
+              { "status": 409, "type": "ErrorResponse", "when": "attempt already submitted" },
+              { "status": 500, "type": "ErrorResponse", "when": "grading failed" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/admin",
+      "file": "modules/synthesis/synthesis.routes.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/admin/synthesize-levels",
+          "description": "Admin-only: Level Synthesis — derives a draft set of CurriculumNode levels (with prerequisite graph, using tempKeys) from a chapter's ingested DocumentChunks. Returns a draft for review; nothing is persisted until POST /admin/nodes/bulk commits it.",
+          "auth": "authenticate + requireAdmin",
+          "payload": { "type": "SynthesizeLevelsBody (JSON body)", "shape": { "classLevel": "integer 1-12", "subject": "string", "chapter": "integer >=1" } },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "SynthesizeLevelsResponse",
+              "shape": {
+                "classLevel": "number", "subject": "string", "chapter": "number", "chunksAnalyzed": "number (0 = chapter not ingested)", "existingNodeCount": "number",
+                "draft": [{ "tempKey": "string", "title": "string", "description": "string", "orderIndex": "number", "prerequisiteKeys": "string[] (tempKeys)", "totalXp": "number", "sourcePages": "number[]" }]
+              }
+            },
+            "errors": [
+              { "status": 404, "type": "ErrorResponse", "when": "no ingested content for this chapter" },
+              { "status": 503, "type": "ErrorResponse", "when": "synthesis failed — try again" },
+              { "status": 500, "type": "ErrorResponse", "when": "unexpected failure" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/admin/analytics",
+      "file": "modules/analytics/analytics.routes.ts",
+      "routes": [
+        {
+          "method": "GET",
+          "path": "/api/v1/admin/analytics/",
+          "description": "Admin dashboard summary: student count, ingested-content count, cross-student weak topics, per-node pass rates, and chapters with content but no CurriculumNode yet.",
+          "auth": "authenticate + requireAdmin",
+          "payload": { "type": "Querystring", "shape": { "classLevel": "integer 1-12 (optional)", "subject": "string (optional)" } },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "AnalyticsResponse",
+              "shape": {
+                "studentCount": "number", "documentChunkCount": "number",
+                "weakTopics": [{ "nodeId": "string", "title": "string", "subject": "string", "classLevel": "number", "averageScore": "number", "attempts": "number" }],
+                "nodePassRates": [{ "nodeId": "string", "title": "string", "subject": "string", "classLevel": "number", "chapterNumber": "number", "attempts": "number", "passRate": "number (0-100)" }],
+                "uncoveredChapters": [{ "classLevel": "number", "subject": "string", "chapter": "number", "chunkCount": "number" }]
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/admin/analytics/students",
+          "description": "Admin-only: lists every student, for the drilldown picker.",
+          "auth": "authenticate + requireAdmin",
+          "payload": { "type": "none", "shape": null },
+          "response": { "success": { "status": 200, "type": "{ students: StudentListItem[] }", "shape": { "students": [{ "id": "string", "name": "string", "email": "string", "classLevel": "number", "xp": "number" }] } } }
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/admin/analytics/students/:userId",
+          "description": "Admin-only: full drilldown on one student — adaptive profile scores, per-node progress, and mastery attempt history.",
+          "auth": "authenticate + requireAdmin",
+          "payload": { "type": "URL param", "shape": { "userId": "string (path param)" } },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "StudentDrilldownResponse",
+              "shape": {
+                "userId": "string", "name": "string", "email": "string", "classLevel": "number", "xp": "number", "streakDays": "number",
+                "profile": { "visualPreferenceScore": "number", "mathRigidityScore": "number", "patienceLevel": "number", "languageMix": "string", "weakTopics": "string[]" },
+                "progress": [{ "nodeId": "string", "nodeTitle": "string", "classLevel": "number", "subject": "string", "status": "string", "score": "number", "completedAt": "string|null" }],
+                "masteryHistory": [{ "attemptId": "string", "nodeId": "string", "nodeTitle": "string", "score": "number|null", "passed": "boolean|null", "startedAt": "string", "submittedAt": "string|null" }]
+              }
+            },
+            "errors": [{ "status": 404, "type": "ErrorResponse", "when": "student not found" }]
+          }
+        }
+      ]
+    },
+    {
+      "prefix": "/api/v1/video",
+      "file": "modules/video/video.routes.ts",
+      "routes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/video/build",
+          "description": "Builds (or fetches) the audio-visual layer of a VIDEO chat turn. Never blocks on generation — a cold build (director → per-scene narration → Manim render → assembly) takes ~1.5-3.5 min, so this returns immediately with generating:true and the client polls the same endpoint again with the same body until it lands. Takes EITHER a videoBrief (current pipeline) or a legacy videoScript (replays a turn stored before the Manim pipeline existed) — never both, never neither.",
+          "auth": "authenticate",
+          "payload": {
+            "type": "VideoBuildRequestBody (JSON body)",
+            "shape": {
+              "videoBrief": "VideoBrief { title, conceptKey?, goal, analogy? } — the current path (optional, mutually exclusive with videoScript)",
+              "videoScript": "VideoScript (legacy) { title, narration, accentLocale, visualCues, deliveryMode?, conceptKey? } — replays a pre-existing stored turn (optional)",
+              "subject": "string (required to actually build/reuse a lesson)",
+              "chapter": "integer >=1 (required to actually build/reuse a lesson)",
+              "nodeId": "string (optional — strongest reuse key when tied to a roadmap level)",
+              "wantsNewVariant": "boolean (optional — asks for a different take instead of a previously-seen one)"
+            }
+          },
+          "response": {
+            "success": {
+              "status": 200,
+              "type": "VideoLessonResponse",
+              "shape": {
+                "title": "string",
+                "scenes": "LessonSceneView[] { id, startMs, durationMs, audioUrl, videoUrl?, narration, beats: { timeMs, highlightText, focusX?, focusY? }[] } — empty if replayed from the shared library (plays as lessonUrl instead)",
+                "lessonUrl": "string (optional) — assembled downloadable MP4",
+                "totalDurationMs": "number",
+                "timestampManifest": "WordTiming[] { word, startMs, endMs }[] — lesson-relative, for captions/timestamp-ask",
+                "generating": "boolean — true means poll this same endpoint again",
+                "reused": "boolean — true if served free from the shared library",
+                "failed": "string (optional) — set when the build failed for good, stop polling",
+                "videoScript": "VideoScript (optional) — legacy replay path only",
+                "audioUrl": "string (optional) — legacy replay path only"
+              }
+            },
+            "errors": [
+              { "status": 400, "type": "ErrorResponse", "when": "neither videoBrief nor videoScript given, or subject/chapter missing for a new build" },
+              { "status": 500, "type": "ErrorResponse", "when": "build failed unexpectedly" }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "All JSON bodies are validated against a Fastify/AJV schema; a body failing validation returns HTTP 400 automatically before the handler runs.",
+    "Every 'authenticate'-gated route reads 'Authorization: Bearer <accessToken>'; the access token also carries userId/role/classLevel/emailVerified as JWT claims, which is why changing class or verifying email re-issues a new token.",
+    "requireVerified routes (chat, timestamp-ask, lessons/start, mastery/start+submit) require emailVerified=true on top of a valid token.",
+    "requireAdmin routes require role='ADMIN' on top of a valid token; every /api/v1/admin/* route requires both authenticate and requireAdmin.",
+    "Static/uploaded media is served outside these API routes at /uploads/* (narration audio, swept after 24h) and, depending on MEDIA_STORE config, /media/* (local) or an external R2/Cloudinary URL (durable lesson videos)."
+  ]
+}

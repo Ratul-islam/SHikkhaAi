@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+
+<html lang="bn"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><title>ShikkhaAI - শিক্ষা এআই</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"tertiary-fixed":"#e1e0ff","secondary-fixed-dim":"#ffb95f","surface":"#f8f9ff","on-primary-fixed-variant":"#005049","on-primary-container":"#f4fffc","on-error":"#ffffff","surface-container-highest":"#d3e4fe","on-secondary":"#ffffff","on-error-container":"#93000a","on-primary":"#ffffff","surface-dim":"#cbdbf5","secondary-container":"#fea619","outline-variant":"#bcc9c6","error":"#ba1a1a","on-surface":"#0b1c30","surface-tint":"#006a61","on-tertiary-fixed-variant":"#2f2ebe","background":"#f8f9ff","tertiary-container":"#6063ee","primary-fixed":"#89f5e7","on-secondary-container":"#684000","on-primary-fixed":"#00201d","surface-container":"#e5eeff","surface-container-lowest":"#ffffff","surface-container-high":"#dce9ff","on-secondary-fixed":"#2a1700","secondary-fixed":"#ffddb8","on-secondary-fixed-variant":"#653e00","primary-container":"#008378","on-tertiary":"#ffffff","primary-fixed-dim":"#6bd8cb","inverse-surface":"#213145","on-tertiary-fixed":"#07006c","error-container":"#ffdad6","secondary":"#855300","on-surface-variant":"#3d4947","tertiary":"#4648d4","surface-bright":"#f8f9ff","on-background":"#0b1c30","surface-container-low":"#eff4ff","on-tertiary-container":"#fffbff","tertiary-fixed-dim":"#c0c1ff","primary":"#00685f","inverse-on-surface":"#eaf1ff","surface-variant":"#d3e4fe","outline":"#6d7a77","inverse-primary":"#6bd8cb"},borderRadius:{"DEFAULT":"1rem","lg":"2rem","xl":"3rem","full":"9999px"},spacing:{"margin-mobile":"1rem","margin":"2rem","space-md":"1rem","gutter-mobile":"0.75rem","gutter":"1.5rem","space-sm":"0.5rem","space-lg":"1.5rem","space-xl":"2.5rem","space-xs":"0.25rem"},fontFamily:{"display-hero":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"label-lg":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"]},fontSize:{"display-hero":["44px",{"lineHeight":"56px","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-lg":["32px",{"lineHeight":"42px","letterSpacing":"-0.015em","fontWeight":"700"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.02em","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"22px","fontWeight":"400"}],"body-lg":["16px",{"lineHeight":"26px","fontWeight":"400"}],"headline-md":["24px",{"lineHeight":"32px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-sm":["18px",{"lineHeight":"26px","fontWeight":"600"}],"label-sm":["10px",{"lineHeight":"14px","letterSpacing":"0.04em","fontWeight":"600"}],"headline-lg-mobile":["26px",{"lineHeight":"34px","letterSpacing":"-0.01em","fontWeight":"700"}]}}}};</script></head><body class="bg-surface font-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 w-full z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 w-full max-w-7xl mx-auto px-margin-mobile md:px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><a class="flex items-center gap-space-sm group" data-path="home" href="#"><img alt="Modern minimalist logo for Borno AI (বর্ণ এআই) featuring an elegant stylized Bengali character 'ব' fused seamlessly with an open book and glowing AI spark / learning node, crafted in emerald teal gradient with sleek modern curves.. Design context: - Primary color: #0d9488
+- Font: plusJakartaSans
+- Mode: light
+- Roundness: rounded-full
+. The logo should be visually consistent with these brand tokens." class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1WCWosmZ6pwliku3ZiyCeWdWDdZ15yyri6Jl3WH75daP0jPdUquAXfA0E61UjK0UNiNMOOZ5K1e0UI5Q82D_AwZOZqt3XDUNKnYq61I7IZRfiNE5wn1rcTZ4tzMpHAR0Y93gRdFRIKhCzbatYmMGXQAV3QkQUN4C-G8ISWa1u32iLqHW8hIu9w_26yIjbdun_xJwg-oDV6_qCu-1Hipue2QgJvk4eDla4VLsnm5Km4kS8g4MOw-2JXVDbjx"/><span class="font-headline-sm text-headline-sm text-primary tracking-tight">শিক্ষা AI</span></a><nav class="hidden lg:flex items-center gap-space-xs p-1 bg-surface-container-low rounded-full" data-active-classes="bg-primary-container text-on-primary-container font-label-lg text-label-lg shadow-sm"><a class="px-space-md py-1.5 rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="home" href="#">হোম</a><a class="px-space-md py-1.5 rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="roadmap" href="#">রোডম্যাপ</a><a class="px-space-md py-1.5 rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="ai-tutor" href="#">AI শিক্ষক</a><a class="px-space-md py-1.5 rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all" data-path="mastery-test" href="#">মাস্টারি টেস্ট</a><a aria-current="page" class="px-space-md py-1.5 rounded-full transition-all bg-primary-container text-on-primary-container font-label-lg text-label-lg shadow-sm" data-path="profile-and-analytics" href="#">পরিসংখ্যান ও প্রোফাইল</a></nav></div><div class="flex items-center gap-space-sm"><div class="hidden sm:flex items-center gap-space-xs px-space-md py-1 bg-surface-container-low rounded-full"><span class="material-symbols-outlined text-secondary text-lg">local_fire_department</span><span class="font-label-md text-label-md text-on-surface">৭ দিন</span></div><div class="hidden sm:flex items-center gap-space-xs px-space-md py-1 bg-surface-container-low rounded-full"><span class="material-symbols-outlined text-tertiary text-lg">bolt</span><span class="font-label-md text-label-md text-on-surface">৮৫০ XP</span></div><div class="hidden md:flex items-center px-space-md py-1 bg-primary-container/10 rounded-full"><span class="font-label-md text-label-md text-primary font-bold">Class 10 (NCTB)</span></div><div class="flex items-center gap-space-xs pl-space-xs"><button class="flex items-center gap-space-xs p-1 rounded-full hover:bg-surface-container transition-colors focus:outline-none" type="button"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1WrhCbf0ClgTri8CmTfIg6_P3LpK_a-czip7IGzW1G4LATp8sPqeOX-kmcFpEmTghFvE7bEmFs3u0IGUbDjxrMgkbcWCd5zyXh74jBsvbx4lV6rxvH83SOoV_A08yoUnC0wVlz3dYIfFTvnfBkYdkaI4g8iy_VEpy6gUqqv-m6yKUyb9sGJ-9c5OlL8aScAGrRCjAOFMfo3PW3egYJL4gmzqFS4DoYzazBA_ZDL4GKRYNZ8BL68dhJxdta0"/><span class="material-symbols-outlined text-on-surface-variant text-sm">keyboard_arrow_down</span></button></div></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<!-- Subtle Ambient Top Gradient Overlay -->
+<div class="relative w-full max-w-7xl mx-auto px-margin-mobile md:px-margin pb-space-xl">
+<div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-72 bg-gradient-to-b from-primary-fixed/25 via-surface-container-low/40 to-transparent blur-3xl pointer-events-none -z-10"></div>
+<!-- Top Identity Hero Bar (Clean Bento Profile Card) -->
+<section class="mt-space-md w-full bg-surface-container-lowest rounded-lg shadow-sm p-space-md md:p-space-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-space-lg relative overflow-hidden">
+<!-- Ambient Sparkle Glow -->
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-primary-fixed/30 rounded-full blur-2xl pointer-events-none"></div>
+<!-- Identity Left: Avatar & Meta -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center gap-space-md md:gap-space-lg">
+<!-- Avatar Pod with Edit Badge -->
+<div class="relative group shrink-0">
+<img class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover shadow-md transition-transform duration-300 group-hover:scale-105" data-alt="Close up warm academic portrait of Sushmita Sen, a bright South Asian high school student wearing subtle teal rim spectacles and a cheerful confident expression, modern aesthetic, natural soft daylight, bokeh study room background, emerald and warm ambient palette" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVxuiwsTumer_QAuK7gVsKzUKswAb9g67KvpXa3ePXKLqvq6T2KK2DoZrYI5_zp2swp7vhFt_Pol8E-nQuIAoduOJfNVNPJ1wlQTWGItSdXLkTEU5dah8ZFS0nizfemrMlRbbcyn5RzrtZcDwz3_ATUT6SsLME-CPsl7csdwFU3dWKKZ59dyAiJH9apUn6X6DY5Kh33sqfVPZeQdtRLbt-Dzi_8PuHPJpBNo3DtiKZBs-553D96DGbzA"/>
+<button class="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md hover:bg-primary-container transition-all scale-95 group-hover:scale-100" id="avatar-modal-btn" title="ছবি পরিবর্তন বা নতুন এআই অবতার তৈরি" type="button">
+<span class="material-symbols-outlined text-sm">auto_fix_high</span>
+</button>
+</div>
+<!-- Student Meta Details -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex flex-wrap items-center gap-space-xs">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">সুস্মিতা সেন</h1>
+<span class="inline-flex items-center gap-1 px-space-xs py-0.5 rounded-full bg-primary-container/15 text-primary font-label-sm text-label-sm" title="যাচাইকৃত শিক্ষার্থী প্রোফাইল">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">verified</span>
+              ইমেইল ভেরিফাইড
+            </span>
+<span class="px-space-xs py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
+              শিক্ষার্থী (STUDENT)
+            </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-base">alternate_email</span>
+            sushmita.sen@example.com
+            <span class="text-outline-variant">•</span>
+<span class="font-label-md text-label-md text-primary font-semibold">NCTB কারিকুলাম</span>
+</p>
+<!-- Current Class Pill & Change Trigger (PATCH /api/v1/profile/class) -->
+<div class="flex flex-wrap items-center gap-space-sm mt-space-xs">
+<button class="group flex items-center gap-space-xs px-space-md py-1 rounded-full bg-surface-container hover:bg-surface-container-high transition-all" id="class-change-btn" type="button">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-lg text-label-lg text-on-surface">১০ম শ্রেণী (Class 10)</span>
+<span class="material-symbols-outlined text-sm text-on-surface-variant group-hover:text-primary transition-colors">swap_horiz</span>
+</button>
+<span class="font-body-sm text-body-sm text-on-surface-variant hidden sm:inline">টোকেন রিফ্রেশ সুবিধা সক্রিয়</span>
+</div>
+</div>
+</div>
+<!-- Identity Right: Streaks, XP & Quick Actions -->
+<div class="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-space-md shrink-0">
+<!-- Live Counters -->
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center gap-space-xs px-space-md py-2 bg-secondary-fixed/50 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-secondary text-xl" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-secondary-fixed font-bold leading-none">৭ দিন টানা</span>
+<span class="font-label-sm text-label-sm text-on-secondary-fixed-variant leading-none mt-0.5">অধ্যয়ন স্ট্রাইক 🔥</span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs px-space-md py-2 bg-tertiary-fixed/60 rounded-full shadow-sm">
+<span class="material-symbols-outlined text-tertiary text-xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-tertiary-fixed font-bold leading-none">৮৫০ XP</span>
+<span class="font-label-sm text-label-sm text-on-tertiary-fixed-variant leading-none mt-0.5">মোট অভিজ্ঞতা</span>
+</div>
+</div>
+</div>
+<!-- Secondary Profile Buttons -->
+<div class="flex items-center gap-space-xs flex-wrap">
+<button class="flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-primary text-on-primary hover:bg-primary-container shadow-sm transition-transform active:scale-95" id="edit-profile-trigger" type="button">
+<span class="material-symbols-outlined text-sm">edit</span>
+<span class="font-label-md text-label-md">প্রোফাইল সম্পাদনা</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-colors" id="change-pass-trigger" type="button">
+<span class="material-symbols-outlined text-sm">lock_reset</span>
+<span class="font-label-md text-label-md">পাসওয়ার্ড</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Navigation Segment Tabs -->
+<div class="mt-space-lg flex justify-start sm:justify-center">
+<div class="inline-flex p-1.5 bg-surface-container-low rounded-full shadow-inner max-w-full overflow-x-auto gap-1">
+<button class="tab-pill active flex items-center gap-space-xs px-space-lg py-2 rounded-full font-label-lg text-label-lg transition-all bg-primary text-on-primary shadow-sm" data-tab="tab-overview" type="button">
+<span class="material-symbols-outlined text-base">dashboard</span>
+          সারসংক্ষেপ ও মেট্রিক্স
+        </button>
+<button class="tab-pill flex items-center gap-space-xs px-space-lg py-2 rounded-full font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-tab="tab-badges" type="button">
+<span class="material-symbols-outlined text-base">military_tech</span>
+          অর্জিত ব্যাজ ও সম্মাননা
+        </button>
+<button class="tab-pill flex items-center gap-space-xs px-space-lg py-2 rounded-full font-label-lg text-label-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-tab="tab-settings" type="button">
+<span class="material-symbols-outlined text-base">tune</span>
+          সেটিংস ও নিরাপত্তা
+        </button>
+</div>
+</div>
+<!-- TAB 1: OVERVIEW & ANALYTICS (/api/v1/profile/stats) -->
+<div class="tab-content flex flex-col gap-space-xl mt-space-lg" id="tab-overview">
+<!-- Key Metric Cards Grid (4 Units) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Metric 1: Total XP & Daily Progress -->
+<div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">মোট অর্জিত XP</span>
+<div class="w-9 h-9 rounded-full bg-primary-fixed/40 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">hotel_class</span>
+</div>
+</div>
+<div class="my-space-md">
+<div class="flex items-baseline gap-2">
+<span class="font-display-hero text-headline-lg text-on-surface font-bold">৮৫০</span>
+<span class="font-label-md text-label-md text-primary font-semibold">XP</span>
+</div>
+<div class="flex items-center justify-between font-body-sm text-body-sm text-on-surface-variant mt-1">
+<span>আজকে: +১২০ XP</span>
+<span>লক্ষ্য: ২৫০ XP</span>
+</div>
+<!-- Progress Bar -->
+<div class="w-full bg-surface-container rounded-full h-2 mt-2 overflow-hidden">
+<div class="bg-primary h-2 rounded-full transition-all duration-700" style="width: 48%;"></div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+            দৈনিক লক্ষ্যের ৪৮% সম্পন্ন
+          </span>
+</div>
+<!-- Metric 2: Mastery Pass Rate -->
+<div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">মাস্টারি পাসের হার</span>
+<div class="w-9 h-9 rounded-full bg-secondary-fixed/50 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">workspace_premium</span>
+</div>
+</div>
+<div class="my-space-md flex items-center justify-between gap-2">
+<div>
+<div class="flex items-baseline gap-1">
+<span class="font-display-hero text-headline-lg text-on-surface font-bold">৮৮.৫</span>
+<span class="font-label-md text-label-md text-secondary font-bold">%</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">মোট চেষ্টা: ১৪ টি | উত্তীর্ণ: ১২ টি</p>
+</div>
+<!-- SVG Donut Chart -->
+<div class="relative w-14 h-14 shrink-0 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-primary-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="88.5, 100" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<span class="absolute font-label-sm text-label-sm text-on-surface font-bold">১২/১৪</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">বিগত ৩০ দিনের ধারাবাহিক ট্র্যাক</span>
+</div>
+<!-- Metric 3: Completed Nodes -->
+<div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">সম্পন্ন কারিকুলাম নোড</span>
+<div class="w-9 h-9 rounded-full bg-tertiary-fixed/60 text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">account_tree</span>
+</div>
+</div>
+<div class="my-space-md">
+<div class="flex items-baseline gap-1">
+<span class="font-display-hero text-headline-lg text-on-surface font-bold">১৮</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/ ৩৬ টি লেভেল</span>
+</div>
+<div class="flex items-center justify-between font-body-sm text-body-sm text-on-surface-variant mt-1">
+<span>৫০% পূর্ণ পাঠ্যক্রম</span>
+<span class="text-tertiary font-semibold">লেভেল ৪ আনলকড</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2 mt-2 overflow-hidden">
+<div class="bg-tertiary-container h-2 rounded-full transition-all duration-700" style="width: 50%;"></div>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">check_circle</span>
+            ১০ম শ্রেণীর ৬টি বিষয় চলমান
+          </span>
+</div>
+<!-- Metric 4: Streak Mastery -->
+<div class="bg-surface-container-lowest rounded-lg p-space-md shadow-sm flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface-variant">অধ্যয়ন ধারাবাহিকতা (Streak)</span>
+<div class="w-9 h-9 rounded-full bg-secondary-fixed/50 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-lg">insights</span>
+</div>
+</div>
+<div class="my-space-md">
+<div class="flex items-baseline gap-2">
+<span class="font-display-hero text-headline-lg text-secondary font-bold">৭</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">দিন</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">সর্বোচ্চ রেকর্ড: ১৪ দিন একটানা</p>
+<div class="flex items-center gap-1 mt-2.5">
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="w-3 h-3 rounded-full bg-secondary"></span>
+<span class="w-3 h-3 rounded-full bg-secondary animate-pulse"></span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-secondary font-medium">আজকের স্টাডি সেশন সম্পন্ন!</span>
+</div>
+</section>
+<!-- Class-by-Class Progression Breakdown (perClass array) -->
+<section class="bg-surface-container-lowest rounded-lg p-space-md md:p-space-xl shadow-sm flex flex-col gap-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-space-xs">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">শ্রেণীভিত্তিক কারিকুলাম পারফরম্যান্স</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">NCTB সিলেবাসের স্তরভিত্তিক বিস্তারিত তথ্য ও অধ্যায় মূল্যায়ন</p>
+</div>
+<span class="px-space-md py-1 bg-surface-container-low rounded-full font-label-md text-label-md text-primary font-semibold w-fit">
+            ডেটা আপডেট: আজ দুপুর ২:১৫
+          </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
+<!-- Class 9 Card -->
+<div class="bg-surface-container-low rounded-DEFAULT p-space-lg flex flex-col justify-between gap-space-md transition-all hover:bg-surface-container">
+<div class="flex items-start justify-between">
+<div>
+<span class="px-space-xs py-0.5 rounded bg-primary-fixed/40 text-primary font-label-sm text-label-sm uppercase font-bold">সম্পূর্ণ সিলেবাস</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">৯ম শ্রেণী (Class 9)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">বিজ্ঞান বিভাগ • বার্ষিক পরীক্ষা প্রস্তুতি ও রিভিউ</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center text-primary shadow-sm">
+<span class="material-symbols-outlined">task_alt</span>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-3 gap-space-xs text-center py-2 bg-surface-container-lowest/60 rounded-DEFAULT">
+<div>
+<span class="block font-headline-sm text-headline-sm text-on-surface font-bold">১২/১২</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">নোড শেষ</span>
+</div>
+<div>
+<span class="block font-headline-sm text-headline-sm text-primary font-bold">৯১%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">গড় স্কোর</span>
+</div>
+<div>
+<span class="block font-headline-sm text-headline-sm text-on-surface font-bold">৫২০</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">অর্জিত XP</span>
+</div>
+</div>
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-1.5">
+<span class="text-on-surface-variant">পাঠ্যক্রম অগ্রগতি</span>
+<span class="text-primary font-bold">১০০% সমাপ্ত</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2.5 overflow-hidden">
+<div class="bg-primary h-2.5 rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+<!-- Class 10 Card (Active) -->
+<div class="bg-surface-container-low rounded-DEFAULT p-space-lg flex flex-col justify-between gap-space-md transition-all hover:bg-surface-container relative">
+<div class="flex items-start justify-between">
+<div>
+<span class="px-space-xs py-0.5 rounded bg-secondary-fixed/70 text-on-secondary-fixed font-label-sm text-label-sm uppercase font-bold">চলমান শিক্ষাবর্ষ</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold mt-1">১০ম শ্রেণী (Class 10 - বর্তমান)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">এসএসসি ২০২৬ লক্ষ্যমাত্রা • পদার্থবিজ্ঞান ও উচ্চতর গণিত</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined">school</span>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-3 gap-space-xs text-center py-2 bg-surface-container-lowest/60 rounded-DEFAULT">
+<div>
+<span class="block font-headline-sm text-headline-sm text-on-surface font-bold">৬/২৪</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">নোড শেষ</span>
+</div>
+<div>
+<span class="block font-headline-sm text-headline-sm text-primary font-bold">৮৬%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">গড় স্কোর</span>
+</div>
+<div>
+<span class="block font-headline-sm text-headline-sm text-on-surface font-bold">৩৩০</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">অর্জিত XP</span>
+</div>
+</div>
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-1.5">
+<span class="text-on-surface-variant">পাঠ্যক্রম অগ্রগতি</span>
+<span class="text-primary font-bold">২৫% সমাপ্ত</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2.5 overflow-hidden">
+<div class="bg-primary-container h-2.5 rounded-full" style="width: 25%;"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Weekly Mastery Analytics & Subject Strength Sparklines -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg">
+<!-- SVG Visualizer: Weekly Study Velocity -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-lg p-space-md md:p-space-xl shadow-sm flex flex-col justify-between">
+<div class="flex items-center justify-between mb-space-md">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">সাপ্তাহিক শিখন গতি ও XP অর্জন</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">বিগত ৭ দিনের দৈনিক প্রশ্ন সমাধান ও অনুশীলন সময়কাল</p>
+</div>
+<span class="material-symbols-outlined text-primary">equalizer</span>
+</div>
+<!-- Inline Accessible SVG Bar/Line Combined Chart -->
+<div class="w-full h-48 sm:h-56 flex items-end">
+<svg class="w-full h-full overflow-visible" fill="none" preserveaspectratio="none" viewbox="0 0 450 160">
+<!-- Gridlines -->
+<line stroke="#bcc9c6" stroke-dasharray="3 3" stroke-opacity="0.3" x1="0" x2="450" y1="130" y2="130"></line>
+<line stroke="#bcc9c6" stroke-dasharray="3 3" stroke-opacity="0.3" x1="0" x2="450" y1="80" y2="80"></line>
+<line stroke="#bcc9c6" stroke-dasharray="3 3" stroke-opacity="0.3" x1="0" x2="450" y1="30" y2="30"></line>
+<!-- Bar 1: Sat -->
+<rect fill="#89f5e7" height="65" rx="6" width="24" x="25" y="65"></rect>
+<!-- Bar 2: Sun -->
+<rect fill="#89f5e7" height="80" rx="6" width="24" x="85" y="50"></rect>
+<!-- Bar 3: Mon -->
+<rect fill="#89f5e7" height="40" rx="6" width="24" x="145" y="90"></rect>
+<!-- Bar 4: Tue -->
+<rect fill="#89f5e7" height="95" rx="6" width="24" x="205" y="35"></rect>
+<!-- Bar 5: Wed -->
+<rect fill="#89f5e7" height="60" rx="6" width="24" x="265" y="70"></rect>
+<!-- Bar 6: Thu -->
+<rect fill="#89f5e7" height="85" rx="6" width="24" x="325" y="45"></rect>
+<!-- Bar 7: Today (Fri) Active Color -->
+<rect fill="#00685f" height="110" rx="6" width="24" x="385" y="20"></rect>
+<!-- Trendline -->
+<path d="M 37 60 Q 97 45 157 85 T 277 65 T 397 18" fill="none" stroke="#008378" stroke-linecap="round" stroke-width="3"></path>
+<!-- Points -->
+<circle cx="397" cy="18" fill="#ffffff" r="4.5" stroke="#00685f" stroke-width="3"></circle>
+</svg>
+</div>
+<div class="grid grid-cols-7 text-center font-label-sm text-label-sm text-on-surface-variant pt-2">
+<span>শনি</span>
+<span>রবি</span>
+<span>সোম</span>
+<span>মঙ্গল</span>
+<span>বুধ</span>
+<span>বৃহঃ</span>
+<span class="text-primary font-bold">আজ</span>
+</div>
+</div>
+<!-- Subject Wise Mastery Mini-Card -->
+<div class="bg-surface-container-lowest rounded-lg p-space-md md:p-space-lg shadow-sm flex flex-col justify-between">
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">বিষয়ভিত্তিক দক্ষতা</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">সবচেয়ে মজবুত ও রিভিশন প্রয়োজন এমন বিষয়</p>
+<div class="flex flex-col gap-space-sm">
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-1">
+<span class="text-on-surface">পদার্থবিজ্ঞান (Physics)</span>
+<span class="text-primary font-bold">৯৪%</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2">
+<div class="bg-primary h-2 rounded-full" style="width: 94%;"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-1">
+<span class="text-on-surface">উচ্চতর গণিত</span>
+<span class="text-secondary font-bold">৮৫%</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2">
+<div class="bg-secondary h-2 rounded-full" style="width: 85%;"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between font-label-md text-label-md mb-1">
+<span class="text-on-surface">রসায়ন (Chemistry)</span>
+<span class="text-tertiary font-bold">৭২%</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-2">
+<div class="bg-tertiary h-2 rounded-full" style="width: 72%;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-md p-space-sm bg-surface-container-low rounded-DEFAULT flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-base">psychology</span>
+<span class="font-body-sm text-body-sm text-on-surface">এআই পরামর্শ: রসায়ন জারণ-বিজারণ অধ্যায়ে রিভিশন দিন</span>
+</div>
+</div>
+</section>
+</div>
+<!-- TAB 2: GAMIFICATION BADGES (/api/v1/profile/badges) -->
+<div class="tab-content hidden flex-col gap-space-lg mt-space-lg" id="tab-badges">
+<section class="bg-surface-container-lowest rounded-lg p-space-md md:p-space-xl shadow-sm flex flex-col gap-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-space-xs">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">অর্জিত ব্যাজ গ্যালারি</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">ধারাবাহিক পড়াশোনা ও মাস্টারি টেস্ট সফলভাবে সম্পন্ন করে নতুন অর্জন আনলক করুন</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-space-md py-1 rounded-full bg-primary-fixed/50 font-label-md text-label-md text-on-primary-fixed-variant font-bold">
+              ৪টি আনলকড
+            </span>
+<span class="px-space-md py-1 rounded-full bg-surface-container font-label-md text-label-md text-on-surface-variant">
+              ২টি লকড
+            </span>
+</div>
+</div>
+<!-- Badges Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-space-md">
+<!-- Badge 1: Weekly Accuracy Star -->
+<div class="bg-surface-container-low rounded-DEFAULT p-space-md flex items-start gap-space-md relative overflow-hidden group hover:shadow-md transition-all">
+<div class="w-14 h-14 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-secondary text-2xl" style="font-variation-settings: 'FILL' 1;">hotel_class</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1">
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">সাপ্তাহিক নির্ভুল তারকা</h4>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">টানা ৭ দিনে ৯০%+ নির্ভুলতার সাথে সকল কুইজ সমাপ্ত</p>
+<div class="mt-space-xs flex items-center gap-1 text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs">verified</span>
+<span>অর্জিত: ২ দিন আগে (Earned 2 days ago)</span>
+</div>
+</div>
+</div>
+<!-- Badge 2: Science Pioneer -->
+<div class="bg-surface-container-low rounded-DEFAULT p-space-md flex items-start gap-space-md relative overflow-hidden group hover:shadow-md transition-all">
+<div class="w-14 h-14 rounded-full bg-primary-fixed flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">biotech</span>
+</div>
+<div class="flex flex-col">
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">বিজ্ঞান পথিকৃত</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">পদার্থবিজ্ঞান ও রসায়ন বিষয়ে ৫টি মাস্টারি চেক সফলভাবে উত্তীর্ণ</p>
+<div class="mt-space-xs flex items-center gap-1 text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs">verified</span>
+<span>অর্জিত: ১২ দিন আগে</span>
+</div>
+</div>
+</div>
+<!-- Badge 3: Streak 7 -->
+<div class="bg-surface-container-low rounded-DEFAULT p-space-md flex items-start gap-space-md relative overflow-hidden group hover:shadow-md transition-all">
+<div class="w-14 h-14 rounded-full bg-secondary-fixed-dim flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-on-secondary-fixed text-2xl" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<div class="flex flex-col">
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">অগ্নিশিখা ৭</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">টানা ৭ দিন সক্রিয়ভাবে শিক্ষা এআই প্ল্যাটফর্মে লার্নিং সেশন সম্পন্ন</p>
+<div class="mt-space-xs flex items-center gap-1 text-secondary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs">verified</span>
+<span>অর্জিত: আজ (সক্রিয় স্ট্রাইক)</span>
+</div>
+</div>
+</div>
+<!-- Badge 4: Motion & Mechanics Specialist -->
+<div class="bg-surface-container-low rounded-DEFAULT p-space-md flex items-start gap-space-md relative overflow-hidden group hover:shadow-md transition-all">
+<div class="w-14 h-14 rounded-full bg-tertiary-fixed flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-tertiary text-2xl" style="font-variation-settings: 'FILL' 1;">speed</span>
+</div>
+<div class="flex flex-col">
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">গতিবিদ্যায় পারদর্শী</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">১০ম শ্রেণীর গতি ও বল অধ্যায়ের সকল গাণিতিক সমস্যার সঠিক সমাধান</p>
+<div class="mt-space-xs flex items-center gap-1 text-tertiary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-xs">verified</span>
+<span>অর্জিত: ৪ দিন আগে</span>
+</div>
+</div>
+</div>
+<!-- Badge 5: Locked - Chemistry Wizard -->
+<div class="bg-surface-container-low/70 rounded-DEFAULT p-space-md flex items-start gap-space-md relative overflow-hidden opacity-75 group">
+<div class="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">lock</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1">
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant font-bold">রসায়ন জাদুকর</h4>
+<span class="material-symbols-outlined text-xs text-outline">lock</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">লক করা আছে: রসায়ন মাস্টারি কুইজে একটানা ৩ বার ৯০%+ স্কোর প্রয়োজন</p>
+<div class="w-full bg-surface-container rounded-full h-1.5 mt-2 overflow-hidden">
+<div class="bg-outline h-1.5 rounded-full" style="width: 66%;"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-1">অগ্রগতি: ২ / ৩ বার</span>
+</div>
+</div>
+<!-- Badge 6: Locked - Math Champion -->
+<div class="bg-surface-container-low/70 rounded-DEFAULT p-space-md flex items-start gap-space-md relative overflow-hidden opacity-75 group">
+<div class="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant text-2xl">lock</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-1">
+<h4 class="font-headline-sm text-headline-sm text-on-surface-variant font-bold">গণিত চ্যাম্পিয়ন</h4>
+<span class="material-symbols-outlined text-xs text-outline">lock</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">লক করা আছে: ত্রিকোণমিতি ও স্থানাঙ্ক জ্যামিতির ১০টি নোড সম্পন্ন করুন</p>
+<div class="w-full bg-surface-container rounded-full h-1.5 mt-2 overflow-hidden">
+<div class="bg-outline h-1.5 rounded-full" style="width: 40%;"></div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant mt-1">অগ্রগতি: ৪ / ১০ নোড</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- TAB 3: SETTINGS & SECURITY (PATCH /api/v1/profile/settings & /api/v1/auth) -->
+<div class="tab-content hidden flex-col gap-space-lg mt-space-lg" id="tab-settings">
+<!-- Learning Preferences Section -->
+<section class="bg-surface-container-lowest rounded-lg p-space-md md:p-space-xl shadow-sm flex flex-col gap-space-lg">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-2xl">settings_suggest</span>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">পড়ার পছন্দ ও সিস্টেম সেটিংস</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">আপনার দৈনিক লক্ষ্য, প্রিয় বিষয় এবং ইন্টারফেস কাস্টমাইজেশন (PATCH /api/v1/profile/settings)</p>
+</div>
+</div>
+<form class="flex flex-col gap-space-lg" id="settings-form">
+<!-- Grid Settings: Theme & Daily Goal -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
+<!-- Theme Mode Selection -->
+<div class="bg-surface-container-low p-space-md rounded-DEFAULT flex flex-col justify-between gap-space-sm">
+<div>
+<label class="font-label-lg text-label-lg text-on-surface font-bold">ইন্টারফেস থিম (Theme Mode)</label>
+<p class="font-body-sm text-body-sm text-on-surface-variant">আপনার স্ক্রিনের ভিজ্যুয়াল ব্রাইটনেস নিয়ন্ত্রণ করুন</p>
+</div>
+<div class="grid grid-cols-3 gap-2 mt-2">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="theme" type="radio" value="LIGHT"/>
+<div class="p-space-sm rounded-DEFAULT text-center bg-surface-container-lowest peer-checked:bg-primary peer-checked:text-on-primary transition-all shadow-sm flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-lg">light_mode</span>
+<span class="font-label-md text-label-md font-semibold">লাইট</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="theme" type="radio" value="DARK"/>
+<div class="p-space-sm rounded-DEFAULT text-center bg-surface-container-lowest peer-checked:bg-primary peer-checked:text-on-primary transition-all shadow-sm flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-lg">dark_mode</span>
+<span class="font-label-md text-label-md font-semibold">ডার্ক</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="theme" type="radio" value="SYSTEM"/>
+<div class="p-space-sm rounded-DEFAULT text-center bg-surface-container-lowest peer-checked:bg-primary peer-checked:text-on-primary transition-all shadow-sm flex flex-col items-center gap-1">
+<span class="material-symbols-outlined text-lg">desktop_windows</span>
+<span class="font-label-md text-label-md font-semibold">সিস্টেম</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Daily XP Goal Slider -->
+<div class="bg-surface-container-low p-space-md rounded-DEFAULT flex flex-col justify-between gap-space-sm">
+<div class="flex items-center justify-between">
+<div>
+<label class="font-label-lg text-label-lg text-on-surface font-bold" for="xp-slider">দৈনিক XP লক্ষ্য (Daily XP Goal)</label>
+<p class="font-body-sm text-body-sm text-on-surface-variant">প্রতিদিন আপনি কতটুকু অনুশীলন সম্পন্ন করতে চান</p>
+</div>
+<span class="px-space-md py-1 rounded-full bg-primary text-on-primary font-label-lg text-label-lg font-bold" id="xp-slider-val">
+                  ২৫০ XP
+                </span>
+</div>
+<div class="mt-2 flex flex-col gap-2">
+<input class="w-full h-2 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary" id="xp-slider" max="1000" min="100" step="50" type="range" value="250"/>
+<div class="flex justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>১০০ XP (সহজ)</span>
+<span>৫০০ XP (সাধারণ)</span>
+<span>১০০০ XP (নিবিড়)</span>
+</div>
+</div>
+</div>
+<!-- Preferred Subject Dropdown -->
+<div class="bg-surface-container-low p-space-md rounded-DEFAULT flex flex-col gap-space-xs">
+<label class="font-label-lg text-label-lg text-on-surface font-bold" for="preferred-subject">প্রধান পছন্দের বিষয় (Preferred Subject)</label>
+<p class="font-body-sm text-body-sm text-on-surface-variant">হোমপেজে এই বিষয়ের রোডম্যাপ স্বয়ংক্রিয়ভাবে প্রথমে দেখাবে</p>
+<div class="relative mt-2">
+<select class="w-full px-space-md py-2.5 rounded-DEFAULT bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer shadow-sm" id="preferred-subject">
+<option selected="" value="physics">পদার্থবিজ্ঞান (Physics)</option>
+<option value="higher_math">উচ্চতর গণিত (Higher Mathematics)</option>
+<option value="chemistry">রসায়ন (Chemistry)</option>
+<option value="biology">জীববিজ্ঞান (Biology)</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<!-- Timezone Display & Confirmation -->
+<div class="bg-surface-container-low p-space-md rounded-DEFAULT flex flex-col justify-between gap-space-xs">
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-bold">টাইমজোন (Timezone)</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">দৈনিক স্ট্রিক ও লগআউট টাইমস্ট্যাম্প নির্ধারণে ব্যবহৃত হয়</p>
+</div>
+<div class="flex items-center justify-between p-space-sm bg-surface-container-lowest rounded-DEFAULT mt-2 shadow-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">schedule</span>
+<span class="font-body-md text-body-md text-on-surface font-semibold">Asia/Dhaka (GMT+6)</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">স্বয়ংক্রিয় সিঙ্ক</span>
+</div>
+</div>
+</div>
+<!-- Toggles: Email & Reduced Motion -->
+<div class="flex flex-col sm:flex-row gap-space-md">
+<!-- Email Toggle -->
+<div class="flex-1 p-space-md bg-surface-container-low rounded-DEFAULT flex items-center justify-between">
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-bold">ইমেইল নোটিফিকেশন</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">দৈনিক স্টাডি রিমাইন্ডার ও সাপ্তাহিক রিপোর্ট</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Reduced Motion Toggle -->
+<div class="flex-1 p-space-md bg-surface-container-low rounded-DEFAULT flex items-center justify-between">
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-bold">রিডিউসড মোশন (Reduced Motion)</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">পৃষ্ঠার অ্যানিমেশন ও ট্রানজিশন সীমিত করুন</p>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Save Button Trigger -->
+<div class="flex justify-end items-center gap-space-md pt-space-xs">
+<span class="font-label-md text-label-md text-primary font-semibold hidden flex items-center gap-1" id="save-status">
+<span class="material-symbols-outlined text-base">check</span> সেটিংস সফলভাবে সংরক্ষিত হয়েছে!
+            </span>
+<button class="px-space-xl py-2.5 rounded-full bg-primary text-on-primary hover:bg-primary-container font-label-lg text-label-lg shadow-sm transition-all active:scale-95" id="save-settings-btn" type="button">
+              পরিবর্তন সংরক্ষণ করুন
+            </button>
+</div>
+</form>
+</section>
+<!-- Security & Session Management Section (/api/v1/auth) -->
+<section class="bg-surface-container-lowest rounded-lg p-space-md md:p-space-xl shadow-sm flex flex-col gap-space-lg">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-2xl">shield</span>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface font-bold">সেশন ও নিরাপত্তা ব্যবস্থাপনা</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">আপনার লগইন সেশন এবং অ্যাকাউন্ট অথেনটিকেশন নিয়ন্ত্রণ করুন</p>
+</div>
+</div>
+<div class="flex flex-col gap-space-md">
+<!-- Current Browser Active Session Card -->
+<div class="p-space-md bg-surface-container-low rounded-DEFAULT flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-full bg-primary-container/15 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl">laptop_chromebook</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-label-lg text-label-lg text-on-surface font-bold">বর্তমান ব্রাউজার (Chrome on Windows)</span>
+<span class="px-space-xs py-0.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm font-bold">এই ডিভাইস</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">আইপি: ১০৩.২৩০.১০৪.৮৭ • ঢাকা, বাংলাদেশ • সক্রিয় এখন</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+              এনক্রিপ্টেড সেশন
+            </span>
+</div>
+<!-- Mobile App Session -->
+<div class="p-space-md bg-surface-container-low rounded-DEFAULT flex flex-col sm:flex-row sm:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-2xl">smartphone</span>
+</div>
+<div>
+<span class="font-label-lg text-label-lg text-on-surface font-bold">ShikkhaAI অ্যান্ড্রয়েড অ্যাপ</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">স্যামসাং গ্যালাক্সি এ৫৪ • শেষ সক্রিয়তা: গতকাল রাত ৯:৪৫</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">টোকেন মেয়াদ: ২১ দিন বাকি</span>
+</div>
+</div>
+<!-- Global Sign Out Danger Area (POST /api/v1/auth/logout-all) -->
+<div class="p-space-lg rounded-DEFAULT bg-error-container/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-error-container font-bold">জরুরি সেশন টার্মিনেশন</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">সকল মোবাইল ও ওয়েব ডিভাইস থেকে তাৎক্ষণিক সাইন আউট করতে চান?</p>
+</div>
+<button class="px-space-lg py-2.5 rounded-full bg-error text-on-error hover:bg-red-700 font-label-lg text-label-lg shadow-sm transition-all flex items-center gap-space-xs active:scale-95 shrink-0" id="logout-all-btn" type="button">
+<span class="material-symbols-outlined text-base">logout</span>
+            সকল ডিভাইস থেকে সাইন আউট
+          </button>
+</div>
+</section>
+</div>
+</div>
+<!-- MODAL 1: Quick Class Switcher (PATCH /api/v1/profile/class) -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm hidden items-center justify-center p-4" id="class-modal">
+<div class="bg-surface-container-lowest w-full max-w-md rounded-lg shadow-xl p-space-lg flex flex-col gap-space-md relative">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">শ্রেণী ও স্তর পরিবর্তন</h3>
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant" id="close-class-modal" type="button">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+        আপনার অধ্যয়নের কারিকুলাম শ্রেণী পরিবর্তন করুন।
+      </p>
+<!-- Important Notice -->
+<div class="p-space-sm bg-secondary-fixed/30 rounded-DEFAULT flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-base mt-0.5">info</span>
+<span class="font-body-sm text-body-sm text-on-secondary-fixed font-medium">
+          ক্লাস পরিবর্তন করলে তাৎক্ষণিক নতুন অথেনটিকেশন টোকেন ইস্যু হবে এবং হোম ড্যাশবোর্ড নতুন সিলেবাস অনুযায়ী আপডেট হবে।
+        </span>
+</div>
+<div class="flex flex-col gap-2">
+<label class="p-space-sm rounded-DEFAULT bg-surface-container-low flex items-center justify-between cursor-pointer hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<input class="accent-primary" name="target-class" type="radio" value="9"/>
+<span class="font-label-lg text-label-lg text-on-surface">৯ম শ্রেণী (Class 9 - NCTB)</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">১০০% নোড শেষ</span>
+</label>
+<label class="p-space-sm rounded-DEFAULT bg-primary-fixed/20 flex items-center justify-between cursor-pointer">
+<div class="flex items-center gap-2">
+<input checked="" class="accent-primary" name="target-class" type="radio" value="10"/>
+<span class="font-label-lg text-label-lg text-primary font-bold">১০ম শ্রেণী (Class 10 - বর্তমান)</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-bold">সক্রিয়</span>
+</label>
+<label class="p-space-sm rounded-DEFAULT bg-surface-container-low flex items-center justify-between cursor-pointer hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-2">
+<input class="accent-primary" name="target-class" type="radio" value="11"/>
+<span class="font-label-lg text-label-lg text-on-surface">একাদশ-দ্বাদশ (HSC ১ম ও ২য় বর্ষ)</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">উচ্চমাধ্যমিক</span>
+</label>
+</div>
+<div class="flex items-center justify-end gap-2 mt-space-sm">
+<button class="px-space-md py-2 rounded-full text-on-surface-variant font-label-md text-label-md hover:bg-surface-container" id="cancel-class-modal" type="button">
+          বাতিল
+        </button>
+<button class="px-space-lg py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container shadow-sm" id="confirm-class-change" type="button">
+          শ্রেণী আপডেট ও টোকেন রিফ্রেশ
+        </button>
+</div>
+</div>
+</div>
+<!-- MODAL 2: Avatar AI Generation & Upload (PATCH /api/v1/profile/avatar) -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm hidden items-center justify-center p-4" id="avatar-modal">
+<div class="bg-surface-container-lowest w-full max-w-lg rounded-lg shadow-xl p-space-lg flex flex-col gap-space-md relative">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">প্রোফাইল অ্যাভাটার আপডেট</h3>
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant" id="close-avatar-modal" type="button">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+        ডিভাইস থেকে ছবি আপলোড করুন অথবা নতুন এআই স্টাডি অ্যাভাটার জেনারেট করুন (PATCH /api/v1/profile/avatar)।
+      </p>
+<div class="grid grid-cols-2 gap-space-md my-space-xs">
+<div class="p-space-md bg-surface-container-low rounded-DEFAULT flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:bg-surface-container transition-all">
+<span class="material-symbols-outlined text-3xl text-primary">upload_file</span>
+<span class="font-label-lg text-label-lg text-on-surface font-semibold">ডিভাইস থেকে আপলোড</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">JPG, PNG বা WEBP (সর্বোচ্চ ৫ MB)</span>
+</div>
+<div class="p-space-md bg-primary-fixed/30 rounded-DEFAULT flex flex-col items-center justify-center text-center gap-2 cursor-pointer hover:bg-primary-fixed/50 transition-all">
+<span class="material-symbols-outlined text-3xl text-primary">psychology</span>
+<span class="font-label-lg text-label-lg text-primary font-bold">নতুন AI অবতার তৈরি</span>
+<span class="font-body-sm text-body-sm text-on-primary-fixed-variant">স্টুডেন্ট প্রম্পট ভিত্তিক কাস্টম আর্ট</span>
+</div>
+</div>
+<div class="flex items-center justify-end gap-2">
+<button class="px-space-md py-2 rounded-full text-on-surface-variant font-label-md text-label-md hover:bg-surface-container" id="cancel-avatar-modal" type="button">
+          বন্ধ করুন
+        </button>
+<button class="px-space-lg py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container shadow-sm" id="save-avatar-action" type="button">
+          সংরক্ষণ করুন
+        </button>
+</div>
+</div>
+</div>
+<!-- MODAL 3: Edit Profile Me (PATCH /api/v1/profile/me) -->
+<div class="fixed inset-0 z-50 bg-inverse-surface/60 backdrop-blur-sm hidden items-center justify-center p-4" id="edit-profile-modal">
+<div class="bg-surface-container-lowest w-full max-w-lg rounded-lg shadow-xl p-space-lg flex flex-col gap-space-md relative">
+<div class="flex items-center justify-between">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">ব্যক্তিগত প্রোফাইল সম্পাদনা</h3>
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant" id="close-profile-modal" type="button">
+<span class="material-symbols-outlined text-lg">close</span>
+</button>
+</div>
+<form class="flex flex-col gap-space-sm" id="profile-me-form">
+<div>
+<label class="font-label-md text-label-md text-on-surface">পূর্ণ নাম (Full Name)</label>
+<input class="w-full mt-1 px-space-md py-2 bg-surface-container-low rounded-DEFAULT text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary" type="text" value="সুস্মিতা সেন"/>
+</div>
+<div>
+<label class="font-label-md text-label-md text-on-surface">মোবাইল নম্বর (Phone)</label>
+<input class="w-full mt-1 px-space-md py-2 bg-surface-container-low rounded-DEFAULT text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary" type="text" value="+৮৮০ ১৭১২-৩৪৫৬৭৮"/>
+</div>
+<div>
+<label class="font-label-md text-label-md text-on-surface">ঠিকানা ও জেলা (Address &amp; District)</label>
+<input class="w-full mt-1 px-space-md py-2 bg-surface-container-low rounded-DEFAULT text-on-surface font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary" type="text" value="ধানমন্ডি, ঢাকা - ১২০৯"/>
+</div>
+<div class="flex items-center justify-end gap-2 mt-space-md">
+<button class="px-space-md py-2 rounded-full text-on-surface-variant font-label-md text-label-md hover:bg-surface-container" id="cancel-profile-modal" type="button">
+            বাতিল
+          </button>
+<button class="px-space-lg py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container shadow-sm" id="save-profile-me" type="button">
+            আপডেট সম্পন্ন করুন
+          </button>
+</div>
+</form>
+</div>
+</div>
+<!-- Interactive JavaScript -->
+<script>
+    (function() {
+      // 1. Tab Switching Logic
+      const tabs = document.querySelectorAll('.tab-pill');
+      const contents = document.querySelectorAll('.tab-content');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => {
+            t.classList.remove('bg-primary', 'text-on-primary', 'shadow-sm');
+            t.classList.add('text-on-surface-variant');
+          });
+          tab.classList.add('bg-primary', 'text-on-primary', 'shadow-sm');
+          tab.classList.remove('text-on-surface-variant');
+
+          const target = tab.getAttribute('data-tab');
+          contents.forEach(content => {
+            if (content.id === target) {
+              content.classList.remove('hidden');
+              content.classList.add('flex');
+            } else {
+              content.classList.add('hidden');
+              content.classList.remove('flex');
+            }
+          });
+        });
+      });
+
+      // 2. Daily XP Slider Live Output
+      const xpSlider = document.getElementById('xp-slider');
+      const xpVal = document.getElementById('xp-slider-val');
+      if (xpSlider && xpVal) {
+        xpSlider.addEventListener('input', (e) => {
+          xpVal.textContent = e.target.value + ' XP';
+        });
+      }
+
+      // 3. Settings Save Toast Feedback
+      const saveSettingsBtn = document.getElementById('save-settings-btn');
+      const saveStatus = document.getElementById('save-status');
+      if (saveSettingsBtn && saveStatus) {
+        saveSettingsBtn.addEventListener('click', () => {
+          saveStatus.classList.remove('hidden');
+          saveSettingsBtn.classList.add('opacity-75');
+          setTimeout(() => {
+            saveStatus.classList.add('hidden');
+            saveSettingsBtn.classList.remove('opacity-75');
+          }, 3000);
+        });
+      }
+
+      // 4. Modal Triggers (Class switch, Avatar, Profile edit)
+      function setupModal(triggerId, modalId, closeIds) {
+        const trigger = document.getElementById(triggerId);
+        const modal = document.getElementById(modalId);
+        if (!trigger || !modal) return;
+
+        trigger.addEventListener('click', () => {
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+        });
+
+        closeIds.forEach(id => {
+          const btn = document.getElementById(id);
+          if (btn) {
+            btn.addEventListener('click', () => {
+              modal.classList.add('hidden');
+              modal.classList.remove('flex');
+            });
+          }
+        });
+      }
+
+      setupModal('class-change-btn', 'class-modal', ['close-class-modal', 'cancel-class-modal', 'confirm-class-change']);
+      setupModal('avatar-modal-btn', 'avatar-modal', ['close-avatar-modal', 'cancel-avatar-modal', 'save-avatar-action']);
+      setupModal('edit-profile-trigger', 'edit-profile-modal', ['close-profile-modal', 'cancel-profile-modal', 'save-profile-me']);
+
+      // 5. Global Logout Simulation
+      const logoutAllBtn = document.getElementById('logout-all-btn');
+      if (logoutAllBtn) {
+        logoutAllBtn.addEventListener('click', () => {
+          if (confirm('আপনি কি নিশ্চিত যে সকল সেশন ও ডিভাইস থেকে সাইন আউট করতে চান?')) {
+            logoutAllBtn.textContent = 'সাইন আউট সম্পন্ন হচ্ছে...';
+            setTimeout(() => {
+              alert('সকল ডিভাইসের অথেনটিকেশন টোকেন সফলভাবে বাতিল করা হয়েছে।');
+              logoutAllBtn.textContent = 'সকল ডিভাইস থেকে সাইন আউট';
+            }, 800);
+          }
+        });
+      }
+    })();
+  </script>
+</div></main><footer class="w-full bg-surface-container-low mt-space-xl py-space-xl"><div class="max-w-7xl mx-auto px-margin-mobile md:px-margin flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-primary">শিক্ষা AI</span><span class="font-body-sm text-body-sm text-on-surface-variant">| NCTB সিলেবাস ভিত্তিক স্মার্ট লার্নিং সঙ্গী</span></div><div class="flex items-center gap-space-lg"><span class="font-body-sm text-body-sm text-on-surface-variant">© ২০২৫ শিক্ষা এআই। সর্বস্বত্ব সংরক্ষিত।</span></div></div></footer></body></html>

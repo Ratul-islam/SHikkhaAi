@@ -1,0 +1,512 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  name             String
+  /// Nullable — an OAuth-only user (Google, GitHub, ...) has no password.
+  passwordHash     String?
+  /// True once the OTP flow in modules/auth/otp.service.ts confirms the
+  /// address, or immediately for an OAuth signup (the provider already
+  /// asserted the email). modules/auth/auth.hooks.ts's requireVerified
+  /// preHandler gates /chat and /mastery on this.
+  emailVerified    Boolean           @default(false)
+  address          String?
+  phone            String?
+  /// Phase 3 — Google's own `picture` claim for an OAuth signup
+  /// (oauth.routes.ts), or a deterministic generated SVG data-URI avatar
+  /// (lib/avatar.ts) for a password signup. Either way, always set — the
+  /// frontend never has to render a "no avatar" placeholder state.
+  avatarUrl        String?
+  role             Role              @default(STUDENT)
+  classLevel       Int               @default(10) // 1 to 12
+  xp               Int               @default(0)
+  streakDays       Int               @default(0)
+  lastActiveAt     DateTime          @updatedAt
+  /// Weekly progress digest email (modules/notifications/digest.service.ts) — null until the first send. Guards against re-sending inside the same ~7-day window on every scheduler tick.
+  lastDigestSentAt DateTime?
+  profile          UserProfile?
+  settings         UserSettings?
+  progress         UserProgress[]
+  refreshTokens    RefreshToken[]
+  masteryAttempts  MasteryAttempt[]
+  chatMessages     ChatMessage[]
+  authProviders    AuthProvider[]
+  otpCodes         OtpCode[]
+  lessonSessions   LessonSession[]
+  badges           UserBadge[]
+  lessonVideoViews LessonVideoView[]
+  createdAt        DateTime          @default(now())
+}
+
+/// One row per (provider, providerAccountId) linked to a User. Google ships
+/// in Phase 4; adding GitHub later is a new provider value plus a strategy
+/// entry in oauth.routes.ts, not a schema change.
+model AuthProvider {
+  id                String   @id @default(uuid())
+  provider          String // "GOOGLE" | "GITHUB" | ...
+  providerAccountId String
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+}
+
+/// Short-lived 6-digit codes for both email verification and password
+/// reset (disambiguated by `purpose`). Only `codeHash` is ever stored —
+/// never the plaintext code.
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String
+  codeHash  String
+  purpose   String // "VERIFY_EMAIL" | "RESET_PASSWORD"
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  /// Failed-guess counter — otp.service.ts locks a code out after 5.
+  attempts  Int      @default(0)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId, purpose])
+}
+
+/// Adaptive tutoring profile, read by the Orchestrator on every chat turn and
+/// updated in the background by evaluator.ts. Field names/thresholds mirror
+/// PROMPT.md's Core Rules exactly.
+model UserProfile {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  visualPreferenceScore Float    @default(0.5) // 0 = plain text, 1 = strongly prefers visuals/video
+  mathRigidityScore     Float    @default(0.5) // 0 = intuitive, 1 = wants formal step-by-step proofs
+  patienceLevel         Float    @default(0.5) // 0 = wants ultra-short bullets, 1 = fine with long explanations
+  languageMix           String   @default("ENGLISH") // "BANGLA" | "ENGLISH" | "BANGLISH"
+  masteryMatrix         Json     @default("{}") // { [topicKey: string]: "HIGH" | "MEDIUM" | "LOW" }
+  weakTopics            String[] @default([]) // cached by evaluator.ts from UserProgress; Orchestrator just reads it
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Phase 3 — plain user-facing preferences. Deliberately separate from
+/// `UserProfile` above: that model is the *adaptive tutoring* profile the
+/// evaluator writes and the Orchestrator reads (guardrail #5 — its fields
+/// mirror PROMPT.md exactly); this one is settings a student edits
+/// themselves in /settings and nothing in the tutoring pipeline reads.
+model UserSettings {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  theme              String   @default("SYSTEM") // "LIGHT" | "DARK" | "SYSTEM"
+  emailNotifications Boolean  @default(true)
+  /// A student-set target, shown against actual XP earned today in the stats view — purely motivational, nothing gates on it.
+  dailyXpGoal        Int      @default(50)
+  /// Filters the roadmap's default subject view when set; null shows every subject (roadmap.service.ts's existing behavior).
+  preferredSubject   String?
+  /// IANA zone name. Used by lib/streak.ts to decide a day's boundary for streakDays — see that file's note on the UTC-only fallback this replaces.
+  timezone           String   @default("Asia/Dhaka")
+  /// Respected by LessonComposition.tsx: skips the zoom/arrow-flow motion in favor of the plain highlight treatment.
+  reducedMotion      Boolean  @default(false)
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Phase 3 gamification. Deliberately denormalized — badge metadata
+/// (title/description/icon) is defined once in code (badges.service.ts's
+/// `BADGE_DEFINITIONS`), not a separate `Badge` catalog table: there's
+/// nothing dynamic about the catalog (no admin CRUD on badge types), so a
+/// second table + seeding step would be pure ceremony. Awarding is a plain
+/// insert with `badgeKey` as the join to that code-level catalog.
+model UserBadge {
+  id       String   @id @default(uuid())
+  userId   String
+  badgeKey String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeKey])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  revoked   Boolean  @default(false)
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model CurriculumNode {
+  id              String           @id @default(uuid())
+  classLevel      Int
+  subject         String // e.g., "Physics", "General Math"
+  chapterNumber   Int
+  title           String
+  description     String
+  prerequisites   String[] // Node IDs required to unlock
+  orderIndex      Int
+  totalXp         Int              @default(100)
+  /// Textbook pages this level was synthesized from — provenance, so an admin
+  /// reviewing a generated level can check it against the source PDF.
+  sourcePages     Int[]            @default([])
+  /// True when Level Synthesis drafted this node, false for hand-authored ones.
+  synthesized     Boolean          @default(false)
+  userProgress    UserProgress[]
+  masteryAttempts MasteryAttempt[]
+  lessonSessions  LessonSession[]
+
+  @@index([classLevel, subject, chapterNumber])
+}
+
+/// Tracks one student's guided walk through a level (Phase 6) — the AI
+/// proactively teaching a node's content step by step, as opposed to the
+/// purely reactive chat. `outline` is synthesized once, on session creation
+/// (see lesson.service.ts's generateOutline), not regenerated on resume —
+/// each step's actual teaching turn is just another ChatMessage in the same
+/// (userId, subject, chapter) thread chat already uses, produced by feeding
+/// this session's state into the *same* orchestrator call a reactive turn
+/// uses (see orchestrator.ts's `lessonContext` param), never a parallel
+/// "video call" that could double-burn the daily quota.
+///
+/// Mastery Check (MasteryAttempt), unchanged from Phase 1, remains the only
+/// gate to COMPLETED — reaching READY_FOR_MASTERY here is a nudge, not a
+/// second way to pass.
+model LessonSession {
+  id          String         @id @default(uuid())
+  userId      String
+  nodeId      String
+  status      String         @default("ACTIVE") // "ACTIVE" | "READY_FOR_MASTERY" | "ABANDONED"
+  currentStep Int            @default(0) // index into `outline`
+  /// LessonStep[] — see lesson.schema.ts. Synthesized once; stable for the session's lifetime.
+  outline     Json
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  node        CurriculumNode @relation(fields: [nodeId], references: [id])
+  startedAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([userId, nodeId])
+}
+
+model UserProgress {
+  id          String         @id @default(uuid())
+  userId      String
+  nodeId      String
+  status      String // "LOCKED", "UNLOCKED", "COMPLETED"
+  score       Float          @default(0.0)
+  completedAt DateTime?
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  node        CurriculumNode @relation(fields: [nodeId], references: [id])
+
+  @@unique([userId, nodeId])
+}
+
+/// One student's attempt at a level's Mastery Check.
+///
+/// `questions` holds the generated paper INCLUDING each item's correctIndex —
+/// that field is stripped in the API layer and never sent to the client, which
+/// is the whole reason the paper is persisted server-side rather than held by
+/// the browser. Grading reads it back on submit, so the score is something only
+/// the server could have produced.
+model MasteryAttempt {
+  id          String    @id @default(uuid())
+  userId      String
+  nodeId      String
+  /// MasteryQuestion[] — see mastery.schema.ts. Shaped with a `questionType`
+  /// discriminator so NCTB's CQ/SQ paper types can join MCQ later without a migration.
+  questions   Json
+  /// Submitted option indices, keyed by question id. Null until submitted.
+  answers     Json?
+  /// 0-100, computed server-side on submit. Null until submitted.
+  score       Float?
+  passed      Boolean?
+  startedAt   DateTime  @default(now())
+  submittedAt DateTime?
+
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  node CurriculumNode @relation(fields: [nodeId], references: [id])
+
+  @@index([userId, nodeId])
+}
+
+/// One turn of persisted chat history, scoped to (user, subject, chapter) —
+/// this triple is the "conversation" in this app, matching how /chat is
+/// already routed (see CLAUDE.md's shared-contract note). Replaces the old
+/// client-held, client-truncated, refresh-losing history: the server now
+/// owns this data and loads it itself on every /chat call.
+model ChatMessage {
+  id           String   @id @default(uuid())
+  userId       String
+  subject      String
+  chapter      Int
+  /// Differentiates separate conversations for the SAME (subject, chapter) —
+  /// never used for retrieval/grade-isolation (that's still the exact
+  /// classLevel/subject/chapter triple, guardrail #4, untouched by this
+  /// field). @default(1) so every existing code path (Ask Question, Start
+  /// Lesson, Mastery — none of which ever pass this) keeps landing in the
+  /// one thread it always has. Only the explicit "start a new conversation"
+  /// flow (NewConversationSheet, the sidebar's General row) mints 2, 3, ...
+  conversationSlot Int @default(1)
+  /// The Topic the student narrowed this conversation to, if any. Narrows
+  /// retrieval inside the chapter; never replaces the chapter triple.
+  topicId      String?
+  role         String // "user" | "assistant"
+  content      String
+  /// Assistant turns only.
+  responseType String?
+  reasoning    String?
+  /// LEGACY assistant VIDEO turns — the old single-track script (narration +
+  /// visualCues) the Orchestrator used to emit directly. No longer written;
+  /// still read, because dropping it during history hydration is what made old
+  /// videos vanish once before. A turn carrying this replays down the legacy
+  /// path in video.routes.ts (PLAN.md §12).
+  videoScript  Json?
+  /// Assistant VIDEO turns. The Orchestrator's short brief — what to teach and
+  /// which analogy to use — which the director expands into a full scene
+  /// script at /video/build time. Kept so a past turn can offer an on-demand
+  /// "watch this" without auto-rebuilding every historical video on page load.
+  videoBrief   Json?
+  /// Assistant CANVAS turns only — the interactive widget's markup, stored so
+  /// scrolling back or reloading restores the diagram instead of silently
+  /// losing it. Model-generated markup: only ever rendered inside
+  /// VisualSandbox's `sandbox="allow-scripts"` iframe, never into the app DOM.
+  visualHtml   String?
+  /// Assistant turns only — the follow-up chips in the student's own voice,
+  /// so a rehydrated thread keeps its suggestions instead of falling back to
+  /// the static pill set.
+  suggestions  String[] @default([])
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subject, chapter, conversationSlot, createdAt])
+}
+
+/// A generated lesson clip, SHARED across every student (PLAN.md §4).
+///
+/// Keyed by concept, never by prompt text: two students asking "ডায়োড কী?"
+/// phrase it differently, so a prompt hash would essentially never hit across
+/// users — the one case where reuse is worth the most. Lookup prefers `nodeId`
+/// (exact) and falls back to embedding similarity within the same
+/// classLevel/subject/chapter triple, so grade isolation still holds.
+///
+/// Narration is deliberately NOT stored here: Edge/Gemini TTS regenerates it per
+/// turn, so the same footage can be narrated differently for a struggling
+/// student and a confident one.
+model LessonVideo {
+  id           String                      @id @default(uuid())
+  /// Grade isolation — the same triple every other retrieval path keys on.
+  classLevel   Int
+  subject      String
+  chapter      Int
+  /// Set when the concept maps to a roadmap level; the strongest reuse key.
+  nodeId       String?
+  /// Human-readable concept label, for admin review and debugging.
+  conceptKey   String
+  /// "LESSON" — a complete narrated multi-scene lesson (what this library
+  /// holds now) — or "CLIP", a legacy 4-8s veo/wan fragment. Legacy rows are
+  /// never candidates for lesson reuse; they are kept so old URLs still
+  /// resolve rather than 404ing in a student's history.
+  kind         String                      @default("LESSON")
+  /// How many scenes the lesson has. 0 for legacy clips.
+  sceneCount   Int                         @default(0)
+  /// The DirectedScript this lesson was built from, so a library hit can
+  /// replay beats, captions and timestamp-ask without re-running the director.
+  script       Json?
+  /// LEGACY: the English cinematic prompt a veo/wan clip was generated from.
+  /// Nullable because a rendered lesson has no such thing.
+  prompt       String?
+  /// Distinct takes on the SAME concept, for "show me another example".
+  variantIndex Int                         @default(0)
+  model        String
+  durationSec  Int
+  resolution   String
+  /// CDN/object-store URL. Never a path under uploads/ — that directory is
+  /// swept after 24h by uploadsRetention.ts, which would delete a paid asset.
+  url          String
+  /// Actual spend from the job's reported usage.cost, not an estimate.
+  costUsd      Float
+  timesReused  Int                         @default(0)
+  /// 768-dim, same stack as DocumentChunk. Written via $executeRaw — Prisma
+  /// cannot bind a vector literal (see ingestion.service.ts).
+  embedding    Unsupported("vector(768)")?
+  createdAt    DateTime                    @default(now())
+
+  views LessonVideoView[]
+
+  @@unique([nodeId, variantIndex])
+  @@index([classLevel, subject, chapter])
+}
+
+/// Which student has already seen which variant, so "another example" can find
+/// an unseen one — often one a different student already paid for — before
+/// spending anything.
+model LessonVideoView {
+  id      String   @id @default(uuid())
+  userId  String
+  videoId String
+  seenAt  DateTime @default(now())
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video LessonVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId])
+}
+
+/// One row per paid generation (video or narration), for the daily USD caps and
+/// the admin spend view. Kept separate from LessonVideo because a cache hit
+/// costs nothing and must not create a spend row, while a failed job may cost
+/// something and has no video to attach to.
+model MediaSpend {
+  id        String   @id @default(uuid())
+  userId    String?
+  /// "TTS" | "DIRECTOR" | "SCENE_CODE" | "RENDER" | "VIDEO" (legacy footage).
+  /// RENDER rows cost $0 and exist for `cpuMs` — rendering is free in dollars
+  /// and expensive in CPU, which is the meter that binds now (PLAN.md §9.3).
+  kind      String
+  model     String
+  costUsd   Float
+  /// Wall-clock cost of a RENDER row. Null for anything billed in dollars.
+  cpuMs     Int?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+/// Content-addressed cache of rendered Manim scenes. Identical source at an
+/// identical duration is byte-identical video, so it is rendered once for the
+/// whole student body — the cheapest layer of PLAN.md §9.2, since a hit costs
+/// neither dollars nor CPU.
+model RenderedScene {
+  id          String   @id @default(uuid())
+  /// sha256 of quality + target duration + the Manim source.
+  sourceHash  String   @unique
+  url         String
+  durationMs  Int
+  /// What the render actually cost in wall-clock time, for the CPU meter.
+  renderMs    Int
+  timesReused Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model DocumentChunk {
+  id         String                      @id @default(uuid())
+  content    String
+  classLevel Int
+  subject    String
+  chapter    Int
+  /// The Topic this chunk's text sits under, when the book was ingested as a
+  /// whole with detected structure. Null for a chapter intro, and for chunks
+  /// from the legacy single-chapter upload. Deliberately not a relation: rows
+  /// are written by raw SQL (ingestion.service.ts), and a chapter's chunks are
+  /// always replaced together with its topics.
+  topicId    String?
+  embedding  Unsupported("vector(768)")?
+  metadata   Json // { page: 12, topic: "1.3" }
+  createdAt  DateTime                    @default(now())
+
+  @@index([classLevel, subject, chapter])
+  @@index([topicId])
+}
+
+/// One whole-book upload, read page by page in the background and then
+/// reviewed by an admin before anything reaches Chapter/Topic/DocumentChunk
+/// (draft-then-commit, CLAUDE.md guardrail #11).
+model IngestionJob {
+  id             String          @id @default(uuid())
+  fileName       String
+  classLevel     Int
+  subject        String
+  /// "QUEUED" | "READING" | "READY_FOR_REVIEW" | "COMMITTING" | "COMMITTED" | "FAILED"
+  status         String          @default("QUEUED")
+  pageCount      Int             @default(0)
+  pagesDone      Int             @default(0)
+  pagesFailed    Int             @default(0)
+  error          String?
+  /// Real model spend reported by OpenRouter for reading this book. Kept here,
+  /// NOT in MediaSpend — that table's global daily cap gates student video and
+  /// narration, and one book would exhaust it.
+  costUsd        Float           @default(0)
+  chunksInserted Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  committedAt    DateTime?
+
+  pages    IngestionPage[]
+  chapters Chapter[]
+
+  @@index([classLevel, subject])
+  @@index([createdAt])
+}
+
+/// What the page reader saw on one page. Stored so review and commit never
+/// re-read the book, and a failed page can be retried on its own.
+model IngestionPage {
+  id                String       @id @default(uuid())
+  jobId             String
+  pageNumber        Int
+  /// "chapter_opening" | "content" | "exercises" | "front_matter" | "blank" | "failed"
+  pageKind          String
+  chapterNumber     Int?
+  chapterTitle      String?
+  runningHeader     String       @default("")
+  printedPageNumber Int?
+  /// PageHeading[] — { code: "1.3", title: "Development of physics" }
+  headings          Json         @default("[]")
+  text              String       @default("")
+  error             String?
+  job               IngestionJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, pageNumber])
+}
+
+/// A committed textbook chapter. Keyed by the same classLevel/subject/number
+/// triple DocumentChunk and CurriculumNode use — that triple stays the grade
+/// isolation contract (guardrail #4).
+model Chapter {
+  id         String        @id @default(uuid())
+  classLevel Int
+  subject    String
+  number     Int
+  title      String
+  startPage  Int
+  endPage    Int
+  jobId      String?
+  job        IngestionJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  topics     Topic[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([classLevel, subject, number])
+}
+
+/// A numbered section of a chapter ("1.3 Development of physics"). Deeper
+/// headings (1.3.1) stay inside their topic's text.
+model Topic {
+  id         String  @id @default(uuid())
+  chapterId  String
+  code       String
+  title      String
+  orderIndex Int
+  startPage  Int
+  endPage    Int
+  chapter    Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([chapterId, orderIndex])
+}

@@ -1,0 +1,43 @@
+# Pinned render environment for apps/server/.venv-manim (PLAN.md §16).
+#
+# Exact pins, not ranges. Manim 0.21.0 resolved cleanly on Python 3.14.4 with a
+# binary wheel for every one of these — no source builds — and that is a
+# property of these specific versions, not of the dependency graph in general.
+# A later unpinned `pip install` could silently pull a wheel that isn't built
+# for this interpreter, and the failure would surface as every scene falling
+# back to SVG rather than as an install error.
+#
+# Regenerate with:  .venv-manim/bin/pip freeze | sort
+audioop-lts==0.2.2
+av==18.1.0
+beautifulsoup4==4.15.0
+click==8.5.0
+cloup==4.0.0
+decorator==5.3.1
+glcontext==3.0.0
+isosurfaces==0.1.2
+manim==0.21.0
+ManimPango==0.6.1
+mapbox_earcut==2.1.0
+markdown-it-py==4.2.0
+mdurl==0.1.2
+moderngl==5.12.0
+moderngl-window==3.1.1
+networkx==3.6.1
+numpy==2.5.3
+pillow==12.3.0
+pycairo==1.29.1
+pydub==0.25.1
+pyglet==2.1.16
+pyglm==2.8.3
+Pygments==2.21.0
+rich==15.0.0
+scipy==1.18.1
+screeninfo==0.8.1
+skia-pathops==0.9.2
+soupsieve==2.9.2
+srt==3.5.3
+svgelements==1.9.6
+tqdm==4.70.1
+typing_extensions==4.16.0
+watchdog==6.0.0
