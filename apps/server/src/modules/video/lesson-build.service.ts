@@ -3,7 +3,7 @@ import { env } from "../../config/env";
 import type { WordTiming } from "../speech/edge-speech.service";
 import { directLesson } from "./director.service";
 import { generateSceneCode } from "./scene-code.service";
-import { renderScene, renderCacheKey, isRendererReady } from "./manim/render.service";
+import { renderScene, renderCacheKey, isRendererReady, checkRenderHealth } from "./manim/render.service";
 import { assembleLessonFile, conformAndStoreScene } from "./assembly.service";
 import {
   buildTimeline,
@@ -276,7 +276,15 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
   // just to queue behind it adds burst load for no throughput.
   const rendererReady = await isRendererReady();
   if (!rendererReady) {
-    app.log.warn("Manim renderer unavailable — every scene will fall back to the drawn path");
+    // The reasons, not just the symptom: this fires once per lesson on a
+    // deployment whose render environment was never built, and without the
+    // probe's own findings the log can't distinguish "no interpreter at
+    // MANIM_PYTHON" from a venv that exists but can't import manim.
+    const health = await checkRenderHealth();
+    app.log.warn(
+      { problems: health.problems, manimPython: env.MANIM_PYTHON, manimEnabled: env.MANIM_ENABLED },
+      "Manim renderer unavailable — every scene will fall back to the drawn path",
+    );
   }
 
   const built: BuiltScene[] = [];

@@ -8,8 +8,11 @@ RUN apt-get update && apt-get install -y \
     libpango1.0-dev \
     texlive \
     texlive-latex-extra \
+    dvisvgm \
     build-essential \
     pkg-config \
+    fontconfig \
+    fonts-noto-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20
@@ -18,10 +21,16 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 
 WORKDIR /app
 
-# Install Python dependencies for Manim
-# We copy this first to cache the pip install step
+# Manim render venv. The server spawns MANIM_PYTHON (default:
+# apps/server/.venv-manim/bin/python, which only exists after a local
+# `setup:manim`), so installing into the system python leaves the renderer
+# unhealthy and every scene falls back to a caption card. Point it explicitly
+# at a venv that lives outside /app, where `COPY . .` can't clobber it.
 COPY apps/server/manim-requirements.txt ./
-RUN pip install --no-cache-dir -r manim-requirements.txt
+RUN python -m venv /opt/manim-venv && \
+    /opt/manim-venv/bin/pip install --no-cache-dir -r manim-requirements.txt && \
+    /opt/manim-venv/bin/python -I -c "import manim; print('manim', manim.__version__)"
+ENV MANIM_PYTHON=/opt/manim-venv/bin/python
 
 # Copy package.json files to cache npm install
 COPY package.json package-lock.json ./

@@ -1,0 +1,20 @@
+# Host build artefacts must never shadow what the image builds itself.
+# Without this, `COPY . .` copies the local .venv-manim (whose python is a
+# symlink to the HOST interpreter) and host-compiled node_modules into /app.
+**/node_modules
+**/.venv-manim
+**/.venv
+**/dist
+**/.next
+**/__pycache__
+
+# Runtime data and secrets
+apps/server/uploads
+apps/server/storage
+apps/server/media
+.env
+.env.*
+!.env.example
+
+.git
+*.pdf
