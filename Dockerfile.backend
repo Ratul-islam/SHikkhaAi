@@ -36,6 +36,7 @@ RUN npm ci
 COPY . .
 
 # Generate Prisma client and build the backend server
+RUN npm run prisma:generate --workspace=packages/database
 RUN npm run build --workspace=packages/database
 RUN npm run build --workspace=apps/server
 
