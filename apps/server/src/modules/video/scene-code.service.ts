@@ -44,17 +44,52 @@ BANGLA AND MATHS — the single most important rule here:
 
 ANIMATE THE MECHANISM, not decoration. Show the thing working: the ball accelerating, the current going round the loop, the piston pushing, the mercury column dropping, the graph tracing itself. If your scene would look the same at the start and the end, it is a still picture with a delay in it and it teaches nothing. Numbers that update as things move are often the clearest part of all — use \`always_redraw\` or a \`ValueTracker\` for a live readout.
 
-COMPOSITION:
-- The frame is 14.2 units wide by 8 tall, centred on the origin. Keep everything inside roughly x ∈ [-6.5, 6.5], y ∈ [-3.5, 3.5].
-- Titles go \`.to_edge(UP)\`. Do not let text overlap the drawing — use \`.next_to()\`, \`.to_corner()\`, \`.shift()\`.
-- Bangla body text at \`font_size=28\` to \`36\`; titles \`40\`. Anything smaller is unreadable on a phone.
-- The background is dark. Use bright, high-contrast colours.
+LAYOUT — this is where these scenes fail, and the failures are not subtle: shapes drawn off the edge, labels sitting on top of the drawing, a second picture built over a live first one. Treat everything below as a hard constraint.
+
+THE THREE BANDS. The frame is 14.2 units wide by 8 tall, centred on the origin. Divide it, and never let one band's content cross into another:
+- TITLE BAND, y above +2.8 — the title, nothing else. \`title.to_edge(UP)\`.
+- THE STAGE, x from -6.0 to 6.0, y from -2.4 to +2.4 — the drawing. Every shape, arrow, graph and attached label lives here.
+- READOUT BAND, y below -2.8 — one live value or unit note. \`.to_edge(DOWN)\` or \`.to_corner(DL)\`.
+Nothing is ever placed outside x from -6.5 to 6.5, y from -3.5 to 3.5. A shape drawn past the edge is simply not there for the student.
+
+FIT THE PICTURE, EXPLICITLY. Never assume what you built fits — group it and clamp it before you animate it:
+
+        picture = VGroup(block, arrow, ground).arrange(RIGHT, buff=0.6)
+        if picture.width > 11.5:
+            picture.scale_to_fit_width(11.5)
+        if picture.height > 4.6:
+            picture.scale_to_fit_height(4.6)
+        picture.move_to(ORIGIN)
+
+\`arrange\` is how you lay several things out without computing coordinates by hand: \`VGroup(a, b, c).arrange(DOWN, buff=0.4)\`. Use it for anything that is a row or a column.
+
+TEXT DOES NOT WRAP. \`Text\` draws exactly the string you give it, however far past the edge that runs.
+- Break lines yourself with a newline escape inside the string. Keep one line under about 28 Bangla characters.
+- Then clamp it anyway: \`if label.width > 6.0: label.scale_to_fit_width(6.0)\`.
+- A \`MathTex\` over about 24 characters overflows too. Split it into two \`MathTex\` objects arranged DOWN rather than one long line.
+- Bangla body text at \`font_size=28\` to \`36\`; titles \`40\`. Below 28 is unreadable on a phone, so shorten the WORDS, never the type.
+
+NOTHING OVERLAPS. Every object after the first is positioned RELATIVE to something already placed — \`.next_to(obj, UP, buff=0.3)\`, \`.to_edge()\`, \`.to_corner()\`, \`.move_to()\`. Two mobjects created and added without positioning both sit at the origin, on top of each other.
+- A label belongs to its object, not to the frame: \`label.next_to(block, DOWN, buff=0.25)\`.
+- Minimum \`buff\` of 0.25 between anything and anything. An arrow that ends where a label begins has collided.
+- Attach an annotation with \`SurroundingRectangle\` or \`Brace\` rather than floating it nearby and hoping.
+
+ONE PICTURE AT A TIME. If the scene moves on to a second distinct picture, the first one LEAVES first — \`self.play(FadeOut(picture), run_time=SCENE_DURATION * 0.1)\` — or better, \`ReplacementTransform\` the old into the new so the student sees the connection. Building a second cluster over a live first one is exactly what turns a scene into a mush of overlapping shapes.
+
+BUDGET THE STAGE. At most 7 mobjects visible at once, at most 2 Bangla labels besides the title, at most 1 live readout. Every extra object is another chance for a collision, and a busy frame teaches worse than a clear one.
+
+A REDRAWN OBJECT MUST PLACE ITSELF. \`always_redraw\` rebuilds its mobject from scratch every frame, which throws away any \`.next_to()\` or \`.scale_to_fit_width()\` applied OUTSIDE the lambda — the rebuilt one snaps back to the origin, on top of the drawing. Put the placement inside the lambda, and fix the decimals so the text does not change width as it counts:
+
+        readout = always_redraw(lambda: Text(f"বেগ: {speed.get_value():.1f} m/s", font="Noto Sans Bengali", font_size=28).to_edge(DOWN))
+
+AXES ARE BIGGER THAN YOU THINK. Keep \`x_length\` at most 7.5 and \`y_length\` at most 4.2, place the \`Axes\` with \`.move_to(ORIGIN)\`, and remember the axis labels stick out past that box — leave room for them.
+
+THE BACKGROUND IS DARK. Use bright, high-contrast colours.
 - COLOUR CONSTANTS — these are the ONLY ones that exist. Anything else is a NameError that kills the scene:
   WHITE BLACK GREY GRAY (plus _A.._E and DARK_/LIGHT_/DARKER_/LIGHTER_ variants)
   RED BLUE GREEN YELLOW GOLD ORANGE PINK PURPLE TEAL MAROON (each with _A.._E variants, e.g. BLUE_D, RED_E)
   DARK_BLUE DARK_BROWN LIGHT_BROWN GREY_BROWN LIGHT_PINK PURE_RED PURE_GREEN PURE_BLUE
   There is no BROWN, no BROWN_D, no SILVER, no CYAN, no LIME. For anything else use a hex string: \`color="#8B4513"\`.
-- Keep it to 6-10 objects. A busy frame teaches worse than a clear one.
 
 CARRY-OVER — when the direction says something carries over from the previous scene, DRAW IT IN THE SAME PLACE, the same size and the same colour, and then transform it. That continuity is what makes the lesson feel like one idea developing rather than three unrelated pictures. \`Transform\` and \`ReplacementTransform\` are how you show one thing becoming another.
 
@@ -97,15 +132,18 @@ function buildSceneUserMessage(params: {
   scene: DirectedScene;
   index: number;
   durationMs: number;
+  durationIsEstimate?: boolean;
 }): string {
-  const { script, scene, index, durationMs } = params;
+  const { script, scene, index, durationMs, durationIsEstimate } = params;
 
   return [
     `LESSON: ${script.title}`,
     script.approach ? `TEACHING ARC: ${script.approach}` : null,
     "",
     `SCENE ${index + 1} of ${script.scenes.length} — role: ${scene.role}`,
-    `SCENE_DURATION is ${(durationMs / 1000).toFixed(2)} seconds.`,
+    durationIsEstimate
+      ? `SCENE_DURATION will be about ${(durationMs / 1000).toFixed(0)} seconds — the exact value is fixed when the narration is recorded, so time everything from SCENE_DURATION, never from this number.`
+      : `SCENE_DURATION is ${(durationMs / 1000).toFixed(2)} seconds.`,
     "",
     `WHAT IS SPOKEN OVER THIS SCENE (Bangla, for your timing — do NOT put this text on screen):`,
     scene.narration,
@@ -159,6 +197,12 @@ export async function generateSceneCode(
     scene: DirectedScene;
     index: number;
     durationMs: number;
+    /**
+     * True when `durationMs` is estimated from the narration's length rather
+     * than measured from its audio — the first draft is written WHILE the
+     * narration is still being synthesized (see lesson-build.service).
+     */
+    durationIsEstimate?: boolean;
     /**
      * Failures from earlier rounds — a validator rejection OR a render
      * traceback. Both are fed back the same way, which is the point: a scene

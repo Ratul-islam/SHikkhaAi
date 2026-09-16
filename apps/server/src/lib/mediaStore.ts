@@ -38,6 +38,7 @@ function contentTypeFor(key: string): string {
   if (key.endsWith(".webm")) return "video/webm";
   if (key.endsWith(".wav")) return "audio/wav";
   if (key.endsWith(".mp3")) return "audio/mpeg";
+  if (key.endsWith(".m4a")) return "audio/mp4";
   return "application/octet-stream";
 }
 
@@ -269,6 +270,20 @@ export async function putMedia(key: string, body: Buffer): Promise<StoredMedia> 
     default:
       return putLocal(key, body);
   }
+}
+
+/**
+ * Reads back the bytes of something `putMedia` stored, by the URL it returned.
+ * A local `/media/<key>` is read straight off disk (it is root-relative, so
+ * there is nothing to fetch); anything else is a public object-store URL.
+ */
+export async function getMedia(url: string): Promise<Buffer> {
+  if (url.startsWith("/media/")) {
+    return fs.readFile(path.join(MEDIA_DIR, path.basename(url)));
+  }
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Media fetch failed: ${response.status}`);
+  return Buffer.from(await response.arrayBuffer());
 }
 
 /** True when the configured backend actually has everything it needs to store a file. */

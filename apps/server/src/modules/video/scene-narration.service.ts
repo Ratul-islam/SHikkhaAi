@@ -131,11 +131,15 @@ async function narrateScene(app: FastifyInstance, userId: string, scene: Directe
  * lesson existed. In parallel the batch costs about as long as its slowest
  * member instead of their sum.
  *
+ * So Gemini narrates EVERY scene at once (a lesson is at most VIDEO_MAX_SCENES):
+ * at a cap of 4, a 5- or 6-scene lesson waited out one slow call before its
+ * last scenes even started.
+ *
  * Edge-TTS gets a lower cap: it opens a websocket per synthesis against a free
  * public service, and at ~2s a scene there is little to gain from pushing it.
  */
 function narrationConcurrency(): number {
-  return isGeminiTtsConfigured() ? 4 : 2;
+  return isGeminiTtsConfigured() ? Math.max(1, env.VIDEO_MAX_SCENES) : 2;
 }
 
 /**

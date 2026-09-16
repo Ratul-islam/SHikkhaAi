@@ -1,4 +1,5 @@
 import path from "node:path";
+import os from "node:os";
 import "dotenv/config";
 
 export interface Env {
@@ -51,7 +52,11 @@ export interface Env {
   MANIM_QUALITY: "l" | "m" | "h";
   /** Wall-clock ceiling for one scene render; ~45x the measured render time. */
   MANIM_SCENE_TIMEOUT_MS: number;
-  /** How many renders may run at once — the CPU meter that replaced the USD one. */
+  /**
+   * How many heavy media jobs (renders, and the ffmpeg work around them) may
+   * run at once — the CPU meter that replaced the USD one. Defaults by memory:
+   * see defaultRenderConcurrency().
+   */
   MANIM_MAX_CONCURRENT: number;
   /**
    * Address-space (RLIMIT_AS) ceiling per render process, MB.
@@ -123,6 +128,23 @@ export interface Env {
   WEB_APP_URL: string;
 }
 
+/**
+ * One render at a time on a small box, two otherwise.
+ *
+ * A render peaks at ~220MB (480p) to ~265MB (720p) for its whole process
+ * tree, beside a Node server of ~150-180MB. Two at once simply do not fit in
+ * 512MB, and the old fixed default of 2 meant a small deployment OOM-killed
+ * itself the first time two scenes rendered together. Reads the container's
+ * cgroup limit where Node can see one — `os.totalmem()` inside a container
+ * reports the HOST's memory, which is exactly the wrong number here.
+ */
+function defaultRenderConcurrency(): number {
+  const total = os.totalmem();
+  const constrained = typeof process.constrainedMemory === "function" ? process.constrainedMemory() : 0;
+  const available = constrained && constrained > 0 && constrained < total ? constrained : total;
+  return available < 1.5 * 1024 ** 3 ? 1 : 2;
+}
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -152,12 +174,14 @@ export const env: Env = {
   MANIM_QUALITY:
     process.env.MANIM_QUALITY === "l" ? "l" : process.env.MANIM_QUALITY === "h" ? "h" : "m",
   MANIM_SCENE_TIMEOUT_MS: Number(process.env.MANIM_SCENE_TIMEOUT_MS ?? "120000"),
-  MANIM_MAX_CONCURRENT: Number(process.env.MANIM_MAX_CONCURRENT ?? "2"),
+  MANIM_MAX_CONCURRENT: process.env.MANIM_MAX_CONCURRENT
+    ? Number(process.env.MANIM_MAX_CONCURRENT)
+    : defaultRenderConcurrency(),
   MANIM_MEMORY_MB: Number(process.env.MANIM_MEMORY_MB ?? "4096"),
   MANIM_MAX_RETRIES: Number(process.env.MANIM_MAX_RETRIES ?? "1"),
   VIDEO_MAX_SCENES: Number(process.env.VIDEO_MAX_SCENES ?? "6"),
   VIDEO_MAX_TOTAL_SEC: Number(process.env.VIDEO_MAX_TOTAL_SEC ?? "180"),
-  VIDEO_DAILY_USD_PER_USER: Number(process.env.VIDEO_DAILY_USD_PER_USER ?? "0.50"),
+  VIDEO_DAILY_USD_PER_USER: Number(process.env.VIDEO_DAILY_USD_PER_USER ?? "15"),
   VIDEO_DAILY_USD_GLOBAL: Number(process.env.VIDEO_DAILY_USD_GLOBAL ?? "5"),
   TTS_ENGINE: process.env.TTS_ENGINE === "gemini" ? "gemini" : "edge",
   TTS_MODEL: process.env.TTS_MODEL ?? "google/gemini-3.1-flash-tts-preview",

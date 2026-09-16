@@ -2,9 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { env } from "../../config/env";
 import type { WordTiming } from "../speech/edge-speech.service";
 import { directLesson } from "./director.service";
-import { generateSceneCode } from "./scene-code.service";
+import { generateSceneCode, type SceneCodeResult } from "./scene-code.service";
 import { renderScene, renderCacheKey, isRendererReady, checkRenderHealth } from "./manim/render.service";
-import { assembleLessonFile, conformAndStoreScene } from "./assembly.service";
+import { assembleLessonFile, conformAndStoreScene, storeNarration } from "./assembly.service";
+import { getMedia } from "../../lib/mediaStore";
 import {
   buildTimeline,
   concatTimestamps,
@@ -16,9 +17,13 @@ import {
 import {
   checkBudget,
   findReusableLesson,
+  LESSON_KIND,
+  PARTIAL_KIND,
   publishLesson,
   recordReuse,
   recordSpend,
+  type LibraryLesson,
+  type StoredLessonPayload,
 } from "./library.service";
 import type { DirectedScene, DirectedScript, VideoBrief } from "./director.schema";
 
@@ -147,9 +152,11 @@ async function buildScene(
     index: number;
     narration: SceneNarration;
     timing: SceneTiming;
+    /** Round 0's code, already being generated alongside narration. */
+    firstDraft?: Promise<SceneCodeResult>;
   },
 ): Promise<BuiltScene> {
-  const { script, scene, index, narration, timing } = params;
+  const { script, scene, index, narration, timing, firstDraft } = params;
 
   const view: LessonSceneView = {
     id: scene.id,
@@ -169,13 +176,16 @@ async function buildScene(
   const failures: string[] = [];
 
   for (let round = 0; round <= env.MANIM_MAX_RETRIES; round++) {
-    const generated = await generateSceneCode(app, {
-      script,
-      scene,
-      index,
-      durationMs: timing.durationMs,
-      priorFailures: failures,
-    });
+    const generated =
+      round === 0 && firstDraft
+        ? await firstDraft
+        : await generateSceneCode(app, {
+            script,
+            scene,
+            index,
+            durationMs: timing.durationMs,
+            priorFailures: failures,
+          });
 
     if (!generated.source) {
       app.log.warn({ sceneId: scene.id, attempts: generated.attempts.length }, "Scene code generation failed — scene falls back");
@@ -188,11 +198,16 @@ async function buildScene(
       await app.prisma.renderedScene
         .update({ where: { id: cached.id }, data: { timesReused: { increment: 1 } } })
         .catch(() => undefined);
-      // A cache hit returns the URL but not the bytes, so the downloadable MP4
-      // can't be assembled from it. That is the right trade: the interactive
-      // player only needs URLs, and re-downloading every cached scene to build
-      // a file most students never tap would spend bandwidth to save nothing.
-      return { view: { ...view, videoUrl: cached.url } };
+      // Fetch the bytes back. Returning only the URL used to skip the MP4 —
+      // and since a lesson was saved only with its MP4, every cache hit meant
+      // the lesson was thrown away: the better the cache, the less was kept.
+      // A failed fetch still plays (the player needs only the URL); it just
+      // costs the single-file download.
+      const videoBuffer = await getMedia(cached.url).catch((err) => {
+        app.log.warn({ err, sceneId: scene.id }, "Cached scene fetch failed — lesson will have no MP4");
+        return undefined;
+      });
+      return { view: { ...view, videoUrl: cached.url }, ...(videoBuffer ? { videoBuffer } : {}) };
     }
 
     const rendered = await renderScene({ source: generated.source, durationMs: timing.durationMs });
@@ -240,7 +255,45 @@ async function buildScene(
 
 /* ── The build ──────────────────────────────────────────────────────────────*/
 
+/**
+ * A scene's narration length, guessed from its word count before the audio
+ * exists. Only ever shown to the code generator as "about N seconds": the
+ * scene code is written against the SCENE_DURATION variable, which gets the
+ * MEASURED value at render time, and the clip is conformed to the audio
+ * afterwards regardless — so a rough guess costs nothing in sync.
+ */
+function estimateNarrationMs(narration: string): number {
+  const words = narration.trim().split(/\s+/).filter(Boolean).length;
+  return Math.min(60_000, Math.max(3_000, words * 450));
+}
+
+/** Runs `fn` over `items` with at most `limit` in flight, keeping results in input order. */
+async function mapConcurrent<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    for (;;) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index]!, index);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return results;
+}
+
 async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<LessonPayload | null> {
+  // One line per build with where the time went, so "video is slow" is a
+  // number to look at rather than a guess.
+  const startedAt = Date.now();
+  const stageMs: Record<string, number> = {};
+  let stageStart = startedAt;
+  const endStage = (name: string): void => {
+    const now = Date.now();
+    stageMs[name] = now - stageStart;
+    stageStart = now;
+  };
+
   // [1] Direct.
   const directed = await directLesson(app, {
     userId: req.userId,
@@ -250,6 +303,7 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
     brief: req.brief,
     weakTopics: req.weakTopics,
   });
+  endStage("directMs");
 
   if (!directed.script) {
     app.log.warn({ reason: directed.reason }, "Lesson direction failed");
@@ -261,19 +315,8 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
     () => undefined,
   );
 
-  // [2] Narrate each scene on its own. This is what fixes the sync: from here
-  // on, every duration is measured rather than estimated.
-  const narrationBatch = await narrateScenes(app, req.userId, script.scenes);
-  if (!narrationBatch.narrations) {
-    app.log.warn({ pending: narrationBatch.pending }, "Lesson narration incomplete");
-    return null;
-  }
-  const narrations = narrationBatch.narrations;
-  const { timings, totalMs } = buildTimeline(narrations);
-
-  // [3] Render. Sequential rather than Promise.all — render.service already
-  // caps concurrency with a semaphore, and firing six code-gen calls at once
-  // just to queue behind it adds burst load for no throughput.
+  // The renderer check comes first now, because it decides whether code
+  // generation starts at all.
   const rendererReady = await isRendererReady();
   if (!rendererReady) {
     // The reasons, not just the symptom: this fires once per lesson on a
@@ -287,32 +330,74 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
     );
   }
 
-  const built: BuiltScene[] = [];
-  for (const [index, scene] of script.scenes.entries()) {
-    const narration = narrations[index];
-    const timing = timings[index];
-    if (!narration || !timing) continue;
+  // [2] + [3a] Narrate each scene AND write its first draft of code, at the
+  // same time. Code generation used to wait for narration only so its prompt
+  // could print the measured duration — but the code uses the SCENE_DURATION
+  // variable, not the number, so that wait serialised the two slowest model
+  // stages for nothing. If narration then fails, these drafts are wasted:
+  // a few cents of chat against a build that was failing anyway.
+  const firstDrafts: Promise<SceneCodeResult>[] = rendererReady
+    ? script.scenes.map((scene, index) =>
+        generateSceneCode(app, {
+          script,
+          scene,
+          index,
+          durationMs: estimateNarrationMs(scene.narration),
+          durationIsEstimate: true,
+        }).catch((err): SceneCodeResult => {
+          app.log.error({ err, sceneId: scene.id }, "Scene code draft threw");
+          return { source: null, attempts: ["model call failed"] };
+        }),
+      )
+    : [];
 
-    built.push(
-      rendererReady
-        ? await buildScene(app, { userId: req.userId, script, scene, index, narration, timing })
-        : {
-            view: {
-              id: scene.id,
-              startMs: timing.startMs,
-              durationMs: timing.durationMs,
-              audioUrl: narration.audioUrl,
-              narration: scene.narration,
-              beats: placeBeats(scene, timing),
-            },
-          },
-    );
+  // Narrating each scene on its own is what fixes the sync: from here on,
+  // every duration is measured rather than estimated.
+  const narrationBatch = await narrateScenes(app, req.userId, script.scenes);
+  endStage("narrateMs");
+  if (!narrationBatch.narrations) {
+    app.log.warn({ pending: narrationBatch.pending }, "Lesson narration incomplete");
+    return null;
   }
+  const narrations = narrationBatch.narrations;
+  const { timings, totalMs } = buildTimeline(narrations);
+
+  // Copy narration out of uploads/ (swept after 24h) while the scenes render —
+  // it is independent of them, and a saved lesson must not point there.
+  const durableAudio = Promise.all(narrations.map((n) => storeNarration(app, n)));
+
+  // [3] Render. Scenes run CONCURRENTLY. They used to go one at a time on the
+  // theory that the render semaphore made parallelism pointless — but each
+  // scene is a code-generation model call first, typically slower than the
+  // render itself, and that call was waiting in line for no reason. The
+  // semaphore inside render.service still caps heavy media work at
+  // MANIM_MAX_CONCURRENT; the extra workers only let code-gen get ahead of it.
+  const sceneJobs = script.scenes
+    .map((scene, index) => ({ scene, index, narration: narrations[index], timing: timings[index] }))
+    .filter((job): job is typeof job & { narration: SceneNarration; timing: SceneTiming } =>
+      Boolean(job.narration && job.timing),
+    );
+
+  const built: BuiltScene[] = await mapConcurrent(sceneJobs, env.MANIM_MAX_CONCURRENT + 2, ({ scene, index, narration, timing }) =>
+    rendererReady
+      ? buildScene(app, { userId: req.userId, script, scene, index, narration, timing, firstDraft: firstDrafts[index] })
+      : Promise.resolve<BuiltScene>({
+          view: {
+            id: scene.id,
+            startMs: timing.startMs,
+            durationMs: timing.durationMs,
+            audioUrl: narration.audioUrl,
+            narration: scene.narration,
+            beats: placeBeats(scene, timing),
+          },
+        }),
+  );
+  endStage("renderMs");
 
   const renderedSceneCount = built.filter((b) => b.view.videoUrl).length;
 
-  // [4] Assemble the downloadable file — only when every scene rendered in
-  // THIS build. A partial reel would be a file with holes in it, and the
+  // [4] Assemble the downloadable file — only when every scene has video
+  // bytes. A partial reel would be a file with holes in it, and the
   // interactive player is unaffected either way.
   const withBuffers = built.filter((b): b is BuiltScene & { videoBuffer: Buffer } => Boolean(b.videoBuffer));
   const lessonFile =
@@ -323,11 +408,23 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
           timings,
         })
       : null;
+  endStage("assembleMs");
+
+  // Swap each scene's audio to its durable copy where that succeeded. The
+  // response works either way (uploads/ is fine for today); only a lesson
+  // whose narration is ALL durable gets its payload saved.
+  const audioUrls = await durableAudio;
+  const allAudioDurable = audioUrls.every((url) => url !== null);
+  const scenes = built.map((b) => {
+    const index = narrations.findIndex((n) => n.sceneId === b.view.id);
+    const durable = index >= 0 ? audioUrls[index] : null;
+    return durable ? { ...b.view, audioUrl: durable } : b.view;
+  });
 
   const payload: LessonPayload = {
     title: script.title,
     conceptKey: script.conceptKey,
-    scenes: built.map((b) => b.view),
+    scenes,
     ...(lessonFile ? { lessonUrl: lessonFile.url } : {}),
     totalDurationMs: totalMs,
     timestampManifest: concatTimestamps(narrations, timings),
@@ -335,10 +432,25 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
     renderedSceneCount,
   };
 
-  // [5] Shelve it, so the next student gets all of this for free. Only a
-  // complete lesson is published — a half-rendered one would be a permanent
-  // record of a transient failure.
-  if (lessonFile && renderedSceneCount === built.length) {
+  // [5] Save it — every playable build, not just a flawless one. Only saving
+  // lessons where every scene rendered AND the MP4 assembled is what threw
+  // away ~85% of builds: paid for, watched once, gone, and rebuilt from
+  // scratch the next time the student tapped "watch". A lesson with fallback
+  // scenes is kept as PARTIAL, replayable by the students who have seen it
+  // but never shared (see library.service).
+  const complete = built.length > 0 && renderedSceneCount === built.length;
+  const storedPayload: StoredLessonPayload | null = allAudioDurable
+    ? {
+        title: payload.title,
+        scenes: payload.scenes,
+        ...(payload.lessonUrl ? { lessonUrl: payload.lessonUrl } : {}),
+        totalDurationMs: payload.totalDurationMs,
+        timestampManifest: payload.timestampManifest,
+        renderedSceneCount,
+      }
+    : null;
+
+  if (storedPayload || (complete && lessonFile)) {
     await publishLesson(app, {
       userId: req.userId,
       classLevel: req.classLevel,
@@ -346,32 +458,54 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
       chapter: req.chapter,
       nodeId: req.nodeId ?? null,
       script,
-      url: lessonFile.url,
+      kind: complete ? LESSON_KIND : PARTIAL_KIND,
+      url: lessonFile?.url ?? null,
+      payload: storedPayload,
       durationSec: totalMs / 1000,
       costUsd: narrationBatch.totalCostUsd + 0.004,
     });
+  } else {
+    app.log.warn({ conceptKey: script.conceptKey }, "Lesson not saved — narration could not be stored durably");
   }
+  endStage("publishMs");
+
+  app.log.info(
+    {
+      conceptKey: script.conceptKey,
+      scenes: built.length,
+      renderedSceneCount,
+      saved: complete ? LESSON_KIND : storedPayload ? PARTIAL_KIND : "no",
+      totalMs: Date.now() - startedAt,
+      ...stageMs,
+    },
+    "Lesson build finished",
+  );
 
   return payload;
 }
 
 /* ── Public entry point ─────────────────────────────────────────────────────*/
 
-function payloadFromLibrary(
-  lesson: { id: string; url: string; durationSec: number; script: DirectedScript | null },
-): LessonPayload | null {
-  // Without the script there are no per-scene audio URLs or beats, so the
-  // interactive player has nothing to drive. Rows written before the script
-  // column existed simply miss the library and get rebuilt.
+function payloadFromLibrary(lesson: LibraryLesson): LessonPayload | null {
   if (!lesson.script) return null;
 
+  // The stored payload is the whole lesson with durable URLs — a replay keeps
+  // its captions, beats and pause-and-ask exactly as the first viewing had.
+  if (lesson.payload) {
+    return {
+      ...lesson.payload,
+      conceptKey: lesson.script.conceptKey,
+      reused: true,
+    };
+  }
+
+  // Rows from before the payload existed play as the assembled file: their
+  // per-scene audio lived under uploads/ and has long been swept. Without the
+  // script or a file there is nothing to play, so they miss and get rebuilt.
+  if (!lesson.url) return null;
   return {
     title: lesson.script.title,
     conceptKey: lesson.script.conceptKey,
-    // A reused lesson plays as the assembled file rather than scene-by-scene:
-    // the per-scene audio lives under uploads/, which is swept after 24h, so
-    // scene URLs from a week-old lesson would 404. The MP4 is in durable
-    // storage and carries its own audio.
     scenes: [],
     lessonUrl: lesson.url,
     totalDurationMs: Math.round(lesson.durationSec * 1000),
@@ -395,12 +529,10 @@ export async function buildOrGetLesson(app: FastifyInstance, req: BuildRequest):
   // Order matters and the obvious order is wrong. Checking the library first
   // means the poll that lands right after a build finishes finds the lesson
   // this student just paid for sitting on the shelf, and returns it through the
-  // REUSE path — which deliberately carries no scenes, no per-scene audio, no
-  // beats and no word manifest, because a library lesson plays as its assembled
-  // MP4. The student who waited for the build would get a flat video with no
-  // captions, no camera moves and no pause-and-ask, while a stranger's identical
-  // request got the same thing. Checking here first hands them the rich payload
-  // their own build produced.
+  // REUSE path — and for a row without a stored payload (or when saving the
+  // payload failed) that carries no scenes, no per-scene audio, no beats and no
+  // word manifest: a flat MP4 with no captions and no pause-and-ask. Checking
+  // here first always hands them the rich payload their own build produced.
   const key = buildKey(req);
   const existing = inFlight.get(key);
 

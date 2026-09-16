@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     fontconfig \
     fonts-noto-core \
+    tini \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20
@@ -57,4 +58,12 @@ ENV PORT=4000
 EXPOSE 4000
 
 # Start the Fastify backend
-CMD ["npm", "run", "start", "--workspace=apps/server"]
+# node directly, not `npm run start`: npm stays alive as the parent process
+# for the life of the container, ~40-50MB that a 512MB server can't spare.
+# Same working directory the npm workspace script ran in.
+# tini as PID 1: Node there ignores SIGTERM (it installs no default handler
+# as init), so without it every deploy would wait out the stop timeout and
+# SIGKILL mid-request. tini forwards the signal and reaps render children.
+WORKDIR /app/apps/server
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["node", "dist/server.js"]

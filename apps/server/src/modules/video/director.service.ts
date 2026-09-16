@@ -42,12 +42,19 @@ THE SCENES — \`scenes\`
 2 to ${env.VIDEO_MAX_SCENES} scenes. Each one is a single continuous picture with narration spoken over it.
 
 - \`narration\` — THE SPOKEN WORDS FOR THIS SCENE ONLY, in Bangla. This is read aloud by a real voice and its measured length becomes the scene's length, so write it to be HEARD: natural connected speech, no headings, no bullets, no markdown, no emoji, no "$" notation. Say equations the way a teacher says them out loud ("এফ সমান এম এ"). Aim for 2-5 sentences — roughly 25 to 60 words. A scene whose narration is one short clause gives the animation no time to breathe; one that runs past 60 words is really two scenes.
-- \`visualBrief\` — direct the picture in full prose, to someone who will draw it and cannot ask you questions. Say what is on screen at the start, WHAT MOVES and how, and what it should look like at the end. Name positions ("the block sits left of centre, the arrow starts at its right edge"). Be specific about the mechanism: the ball accelerating, the current flowing round the loop, the mercury column dropping. If the picture would look identical at the start and the end, it is not teaching anything a still image could not.
+- \`visualBrief\` — direct the picture in full prose, to someone who will draw it and cannot ask you questions. Say what is on screen at the start, WHAT MOVES and how, and what it should look like at the end. Name positions ("the block sits left of centre, the arrow starts at its right edge"). Be specific about the mechanism: the ball accelerating, the current flowing round the loop, the mercury column dropping. If the picture would look identical at the start and the end, it is not teaching anything a still image could not. Keep it to ONE picture holding at most FIVE named elements — if something new has to appear, say what LEAVES to make room for it. A scene needing more than five elements is really two scenes.
 - \`labels\` — the Bangla words that must appear on screen. Short: "বেগ", "ঘর্ষণ বল", "চাপ বাড়ছে".
 - \`mathTex\` — equations and numerals as LaTeX fragments: "v = u + at", "F_{net} = 0", "10\\\\,\\\\text{m/s}". **NEVER put Bangla in here.** LaTeX cannot typeset Bengali at all; Bangla words belong in \`labels\`. This is not a style preference — a Bangla character in this field fails the render.
 - \`carryOver\` — what the previous scene leaves on screen for this one to build on. Say it explicitly whenever it applies; it is how the transformation above actually happens.
 - \`beats\` — 2 to 4 moments inside the scene. \`at\` is a FRACTION of this scene (0 = its first word, 1 = its last), \`highlightText\` is a short Bangla phrase spoken VERBATIM in this scene's narration at that moment, and \`focusX\`/\`focusY\` (0-1) say where in the picture that beat is talking about, so the camera can move there.
 - \`role\` — HOOK, ANALOGY, MECHANISM, WORKED_EXAMPLE, MISCONCEPTION or RECAP.
+
+THE SCREEN — it is smaller than you think
+Most students watch this on a phone, and everything you name has to be drawn, placed and read at that size. Direct for it:
+- At most five named elements on screen at once, arranged in a shape you actually state: a row, a column, a central object with labels around it. Say where each one sits.
+- \`labels\` are drawn as text on screen, and text does not wrap. Keep each one under about 20 characters. Split a long phrase in two, or move it into the narration — narration is free, screen space is not.
+- \`mathTex\` entries must be short fragments, under about 24 characters. A derivation is a sequence of short lines across scenes, never one long line.
+- If the student has to READ more than two short labels, the picture has stopped being a picture. Say it in the narration instead.
 
 SCOPE
 You have up to ${env.VIDEO_MAX_TOTAL_SEC} seconds, which is enough to teach ONE concept properly. Use it to finish the idea, not to survey a chapter. If the brief is broader than that, narrow it to the single most useful thing and teach that completely.

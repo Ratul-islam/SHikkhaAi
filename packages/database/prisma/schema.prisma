@@ -302,9 +302,10 @@ model ChatMessage {
 /// (exact) and falls back to embedding similarity within the same
 /// classLevel/subject/chapter triple, so grade isolation still holds.
 ///
-/// Narration is deliberately NOT stored here: Edge/Gemini TTS regenerates it per
-/// turn, so the same footage can be narrated differently for a struggling
-/// student and a confident one.
+/// Narration IS stored now (inside `payload`, in durable media storage): a
+/// lesson's scenes are timed to their own narration, so it can't be re-voiced
+/// without re-rendering anyway, and discarding it is what made every replay
+/// either lose its captions or rebuild from scratch.
 model LessonVideo {
   id           String                      @id @default(uuid())
   /// Grade isolation — the same triple every other retrieval path keys on.
@@ -315,16 +316,23 @@ model LessonVideo {
   nodeId       String?
   /// Human-readable concept label, for admin review and debugging.
   conceptKey   String
-  /// "LESSON" — a complete narrated multi-scene lesson (what this library
-  /// holds now) — or "CLIP", a legacy 4-8s veo/wan fragment. Legacy rows are
-  /// never candidates for lesson reuse; they are kept so old URLs still
-  /// resolve rather than 404ing in a student's history.
+  /// "LESSON" — a complete narrated multi-scene lesson, every scene rendered
+  /// (what the shared library serves) — "PARTIAL", a lesson where some scenes
+  /// fell back to caption cards (saved so the student who built it can replay
+  /// it, never served to anyone else) — or "CLIP", a legacy 4-8s veo/wan
+  /// fragment. Legacy rows are never candidates for lesson reuse; they are kept
+  /// so old URLs still resolve rather than 404ing in a student's history.
   kind         String                      @default("LESSON")
   /// How many scenes the lesson has. 0 for legacy clips.
   sceneCount   Int                         @default(0)
   /// The DirectedScript this lesson was built from, so a library hit can
   /// replay beats, captions and timestamp-ask without re-running the director.
   script       Json?
+  /// The playable lesson exactly as the player consumes it: scenes (narration
+  /// and clips in durable storage — never uploads/), beats, word manifest.
+  /// Lets a replay keep captions and pause-and-ask instead of degrading to the
+  /// flat MP4. Null on rows written before it existed.
+  payload      Json?
   /// LEGACY: the English cinematic prompt a veo/wan clip was generated from.
   /// Nullable because a rendered lesson has no such thing.
   prompt       String?
@@ -333,9 +341,11 @@ model LessonVideo {
   model        String
   durationSec  Int
   resolution   String
-  /// CDN/object-store URL. Never a path under uploads/ — that directory is
-  /// swept after 24h by uploadsRetention.ts, which would delete a paid asset.
-  url          String
+  /// The assembled MP4's CDN/object-store URL. Never a path under uploads/ —
+  /// that directory is swept after 24h by uploadsRetention.ts, which would
+  /// delete a paid asset. Null when the lesson couldn't be assembled into one
+  /// file (a PARTIAL lesson); `payload` still plays it.
+  url          String?
   /// Actual spend from the job's reported usage.cost, not an estimate.
   costUsd      Float
   timesReused  Int                         @default(0)

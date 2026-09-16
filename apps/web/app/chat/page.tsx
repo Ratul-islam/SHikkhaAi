@@ -57,6 +57,22 @@ type WatchSource = { videoBrief: VideoBrief } | { videoScript: VideoScript };
 interface VideoLessonState {
   status: "loading" | "ready" | "error";
   data?: VideoLessonResponse;
+  /** The server's own reason when it gave up (e.g. the daily budget), so the panel can say WHY. */
+  failed?: string;
+  /** What the build was started from, so the error panel can retry it. */
+  source?: WatchSource;
+}
+
+/**
+ * The student-facing sentence for a failed build. The budget case gets its own
+ * words because it is not "try again" — retrying today cannot help, and the
+ * generic message made the watch button look broken rather than capped.
+ */
+function videoFailureMessage(failed: string | undefined): string {
+  if (failed && /budget/i.test(failed)) {
+    return "আজকের ভিডিও তৈরির সীমা শেষ হয়ে গেছে। আগে দেখা ভিডিওগুলো দেখা যাবে, নতুন ভিডিও কাল আবার তৈরি করা যাবে।";
+  }
+  return "ভিডিও লেসন তৈরি করা যায়নি। আবার চেষ্টা করে দেখুন।";
 }
 
 /** Typewriter reveal speed — tuned so a full explanation (500-1000 chars) finishes in a few seconds, not instantly and not annoyingly slow. */
@@ -127,6 +143,16 @@ function ChatPageInner(): JSX.Element {
   const [chapterOptions, setChapterOptions] = useState<ChatChapterOption[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [visualOpen, setVisualOpen] = useState(false);
+  /**
+   * Below lg there's no room for a side drawer beside the chat (a 620px video
+   * column left phones with nothing, and the drawer was simply `hidden` there
+   * — so video never showed on a phone at all). Small screens get the same
+   * panel as a bottom sheet instead. Decided in JS, not CSS, so exactly ONE
+   * copy of the panel is mounted: two hidden-by-CSS players would both load,
+   * and both play the narration.
+   */
+  const [isDesktop, setIsDesktop] = useState(false);
+  const isDesktopRef = useRef(false);
   /** Set by "বড় করে দেখো" on a specific message, so the drawer can show an older turn's widget instead of always the latest. Cleared whenever a new turn lands. */
   const [pinnedVisual, setPinnedVisual] = useState<string | null>(null);
   /** Message whose video the drawer should show — set by "ভিডিওটা দেখো" on any past turn. Null means "the latest turn's". */
@@ -154,6 +180,17 @@ function ChatPageInner(): JSX.Element {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1024px)");
+    const sync = (): void => {
+      isDesktopRef.current = query.matches;
+      setIsDesktop(query.matches);
+    };
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     api
@@ -324,8 +361,11 @@ function ChatPageInner(): JSX.Element {
    * server-side, so polling costs nothing and never builds twice.
    */
   async function buildVideoLesson(messageId: string, source: WatchSource): Promise<void> {
-    setVideoLessons((prev) => ({ ...prev, [messageId]: { status: "loading" } }));
-    setVisualOpen(true);
+    setVideoLessons((prev) => ({ ...prev, [messageId]: { status: "loading", source } }));
+    // On a phone the panel is a modal sheet: popping it open for a ~90s build
+    // would cover the answer the student is still reading. There they open it
+    // from the message's "ভিডিওটা দেখো" (handleWatchVideo) or the header toggle.
+    if (isDesktopRef.current) setVisualOpen(true);
 
     const body = { ...source, subject, chapter, ...(nodeId ? { nodeId } : {}) };
 
@@ -354,10 +394,11 @@ function ChatPageInner(): JSX.Element {
       }
 
       if (!isPlayable(response.data)) {
-        setVideoLessons((prev) => ({ ...prev, [messageId]: { status: "error" } }));
+        const failed = response.data.failed;
+        setVideoLessons((prev) => ({ ...prev, [messageId]: { status: "error", source, ...(failed ? { failed } : {}) } }));
       }
     } catch {
-      setVideoLessons((prev) => ({ ...prev, [messageId]: { status: "error" } }));
+      setVideoLessons((prev) => ({ ...prev, [messageId]: { status: "error", source } }));
     }
   }
 
@@ -494,7 +535,8 @@ function ChatPageInner(): JSX.Element {
 
           if (result.responseType === "VIDEO" && result.videoBrief) {
             buildVideoLesson(assistantId, { videoBrief: result.videoBrief });
-          } else if (result.responseType === "CANVAS") {
+          } else if (result.responseType === "CANVAS" && isDesktopRef.current) {
+            // On small screens the widget already renders inline in the message.
             setVisualOpen(true);
           }
         },
@@ -545,7 +587,10 @@ function ChatPageInner(): JSX.Element {
   function handleWatchVideo(messageId: string, source: WatchSource): void {
     setPinnedVideoId(messageId);
     setVisualOpen(true);
-    if (!videoLessons[messageId]) buildVideoLesson(messageId, source);
+    // A failed build is retried on tap. Remembering the error forever is what
+    // made the button look dead: every later tap just reopened the same error.
+    const existing = videoLessons[messageId];
+    if (!existing || existing.status === "error") buildVideoLesson(messageId, source);
   }
 
   function handleSubmit(e: FormEvent): void {
@@ -605,6 +650,56 @@ function ChatPageInner(): JSX.Element {
       onNewConversation={startNewConversation}
     />
   );
+  const visualPanelBody = (
+    <>
+      {latestVideoState?.status === "loading" && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest/50 backdrop-blur-sm p-8 text-center text-sm text-on-surface-variant shadow-sm">
+          <Loader2 className="size-8 animate-spin text-primary" />
+          আপনার ভিডিও লেসন তৈরি হচ্ছে…
+        </div>
+      )}
+
+      {latestVideoState?.status === "ready" && latestVideoState.data && activeVideoId && (
+        <VideoLessonPlayer
+          videoId={activeVideoId}
+          lesson={latestVideoState.data}
+          subject={subject}
+          chapter={chapter}
+          reducedMotion={reducedMotion}
+        />
+      )}
+
+      {latestVideoState?.status === "error" && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-destructive/30 bg-destructive/5 backdrop-blur-sm p-8 text-center text-sm text-destructive shadow-sm">
+          {videoFailureMessage(latestVideoState.failed)}
+          {activeVideoId && latestVideoState.source && !/budget/i.test(latestVideoState.failed ?? "") && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="rounded-full"
+              onClick={() => buildVideoLesson(activeVideoId, latestVideoState.source!)}
+            >
+              আবার চেষ্টা করো
+            </Button>
+          )}
+        </div>
+      )}
+
+      {!latestVideoState && drawerHtml && (
+        <div className="flex-1 rounded-[1.5rem] overflow-hidden border border-outline-variant/30 bg-surface-container-lowest/50 shadow-inner">
+          <VisualSandbox html={drawerHtml} onEvent={handleWidgetEvent} />
+        </div>
+      )}
+
+      {!latestVideoState && !drawerHtml && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest/30 backdrop-blur-sm p-8 text-center text-sm text-on-surface-variant/60 shadow-sm">
+          <ImageOff className="size-8 opacity-50" />
+          একটি ডায়াগ্রাম বা ভিডিও চেয়ে দেখুন, এখানে দেখা যাবে।
+        </div>
+      )}
+    </>
+  );
+
   return (
     <>
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 bg-background/50">
@@ -680,7 +775,9 @@ function ChatPageInner(): JSX.Element {
           </div>
 
           <div className="flex items-center gap-2">
-            <TutorModeBadge snapshot={profileSnapshot} />
+            <div className="hidden sm:block">
+              <TutorModeBadge snapshot={profileSnapshot} />
+            </div>
             {nodeId && <MasteryCheckPanel nodeId={nodeId} onPassed={handleMasteryPassed} />}
             <Button
               variant="ghost"
@@ -822,56 +919,34 @@ function ChatPageInner(): JSX.Element {
 
       {/* Right: Floating Spatial Visual Drawer Island */}
       <AnimatePresence initial={false}>
-        {visualOpen && (
+        {isDesktop && visualOpen && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: drawerWidth, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.3, type: "spring", bounce: 0, ease: "easeOut" }}
-            className="hidden shrink-0 overflow-hidden bg-surface-container-lowest/60 backdrop-blur-3xl border border-outline-variant/30 shadow-[0_16px_40px_rgba(0,0,0,0.08)] rounded-[2.5rem] sm:block relative z-20"
+            className="shrink-0 overflow-hidden bg-surface-container-lowest/60 backdrop-blur-3xl border border-outline-variant/30 shadow-[0_16px_40px_rgba(0,0,0,0.08)] rounded-[2.5rem] relative z-20"
           >
             <div className="flex h-full flex-col gap-4 p-5" style={{ width: drawerWidth }}>
               <h2 className="font-headline-sm text-on-surface px-1">ভিজ্যুয়াল ব্যাখ্যা</h2>
 
-              {latestVideoState?.status === "loading" && (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest/50 backdrop-blur-sm p-8 text-center text-sm text-on-surface-variant shadow-sm">
-                  <Loader2 className="size-8 animate-spin text-primary" />
-                  আপনার ভিডিও লেসন তৈরি হচ্ছে…
-                </div>
-              )}
-
-              {latestVideoState?.status === "ready" && latestVideoState.data && activeVideoId && (
-                <VideoLessonPlayer
-                  videoId={activeVideoId}
-                  lesson={latestVideoState.data}
-                  subject={subject}
-                  chapter={chapter}
-                  reducedMotion={reducedMotion}
-                />
-              )}
-
-              {latestVideoState?.status === "error" && (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-destructive/30 bg-destructive/5 backdrop-blur-sm p-8 text-center text-sm text-destructive shadow-sm">
-                  ভিডিও লেসন তৈরি করা যায়নি। আবার জিজ্ঞাসা করে দেখুন।
-                </div>
-              )}
-
-              {!latestVideoState && drawerHtml && (
-                <div className="flex-1 rounded-[1.5rem] overflow-hidden border border-outline-variant/30 bg-surface-container-lowest/50 shadow-inner">
-                  <VisualSandbox html={drawerHtml} onEvent={handleWidgetEvent} />
-                </div>
-              )}
-
-              {!latestVideoState && !drawerHtml && (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-[1.5rem] border border-outline-variant/30 bg-surface-container-lowest/30 backdrop-blur-sm p-8 text-center text-sm text-on-surface-variant/60 shadow-sm">
-                  <ImageOff className="size-8 opacity-50" />
-                  একটি ডায়াগ্রাম বা ভিডিও চেয়ে দেখুন, এখানে দেখা যাবে।
-                </div>
-              )}
+              {visualPanelBody}
             </div>
           </motion.aside>
         )}
       </AnimatePresence>
+      {/* Small screens: the same panel as a bottom sheet. */}
+      {!isDesktop && (
+        <Sheet open={visualOpen} onOpenChange={setVisualOpen}>
+          <SheetContent
+            side="bottom"
+            className="max-h-[92dvh] gap-3 overflow-y-auto rounded-t-[2rem] border-t-outline-variant/30 bg-surface-container-lowest/95 backdrop-blur-2xl px-3 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5"
+          >
+            <SheetTitle className="font-headline-sm text-on-surface px-1 pr-10">ভিজ্যুয়াল ব্যাখ্যা</SheetTitle>
+            <div className="flex min-h-[40dvh] flex-col gap-4">{visualPanelBody}</div>
+          </SheetContent>
+        </Sheet>
+      )}
     </main>
     </>
   );

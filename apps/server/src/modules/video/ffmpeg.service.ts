@@ -173,6 +173,13 @@ export async function conformVideoDuration(
   }
 
   const args = [
+    // Thread caps on BOTH sides of the pipe — before `-i` for the decoder,
+    // after it for the encoder. Left to ffmpeg, each sizes its buffers per CPU
+    // core: a 15s 720p conform peaked at 422MB on a 16-core machine, 190MB
+    // capped. On a small server that is the difference between a conform and
+    // an OOM kill. Output is unaffected — threads change speed, not the picture.
+    "-threads",
+    "2",
     "-i",
     inputPath,
     ...(filters.length > 0 ? ["-vf", filters.join(",")] : []),
@@ -184,6 +191,8 @@ export async function conformVideoDuration(
     "libx264",
     "-preset",
     "veryfast",
+    "-threads",
+    "2",
     "-pix_fmt",
     "yuv420p",
     "-an",
@@ -195,6 +204,22 @@ export async function conformVideoDuration(
     return { ok: false, action, error: outcome.stderr.slice(-500) || `ffmpeg exited ${outcome.code}` };
   }
   return { ok: true, action };
+}
+
+/**
+ * Re-encodes narration to AAC in an .m4a for durable storage. Gemini returns
+ * WAV, ~10x the size of the same speech in AAC, and a saved lesson keeps its
+ * narration for as long as the lesson exists. 64k mono is ample for one voice.
+ */
+export async function transcodeNarration(
+  inputPath: string,
+  outputPath: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const outcome = await runFfmpeg(["-i", inputPath, "-vn", "-ac", "1", "-c:a", "aac", "-b:a", "64k", outputPath]);
+  if (outcome.code !== 0) {
+    return { ok: false, error: outcome.stderr.slice(-500) || `ffmpeg exited ${outcome.code}` };
+  }
+  return { ok: true };
 }
 
 /**

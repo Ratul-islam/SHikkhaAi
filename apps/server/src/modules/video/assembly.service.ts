@@ -4,7 +4,15 @@ import fs from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { putMedia } from "../../lib/mediaStore";
-import { concatListLine, concatScenes, conformVideoDuration, muxSceneAudio, probeDurationMs } from "./ffmpeg.service";
+import { withRenderSlot } from "./manim/render.service";
+import {
+  concatListLine,
+  concatScenes,
+  conformVideoDuration,
+  muxSceneAudio,
+  probeDurationMs,
+  transcodeNarration,
+} from "./ffmpeg.service";
 import { uploadsPathFromUrl, type SceneNarration, type SceneTiming } from "./scene-narration.service";
 
 /**
@@ -53,7 +61,7 @@ export async function conformAndStoreScene(
     const conformedPath = path.join(workDir, "conformed.mp4");
     await fs.writeFile(rawPath, params.buffer);
 
-    const result = await conformVideoDuration(rawPath, conformedPath, params.targetMs);
+    const result = await withRenderSlot(() => conformVideoDuration(rawPath, conformedPath, params.targetMs));
     if (!result.ok) {
       app.log.error({ sceneId: params.sceneId, error: result.error }, "Scene duration conform failed");
       return null;
@@ -72,6 +80,35 @@ export async function conformAndStoreScene(
     return { sceneId: params.sceneId, videoUrl: stored.url, durationMs: params.targetMs };
   } catch (err) {
     app.log.error({ err, sceneId: params.sceneId }, "Scene assembly failed");
+    return null;
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
+
+/**
+ * Copies one scene's narration out of `uploads/` into durable storage and
+ * returns its new URL, or null on failure.
+ *
+ * Narration is synthesized into `uploads/`, which is swept after 24h. That was
+ * fine while a lesson was only ever played once; a SAVED lesson that pointed
+ * there would replay silently the next day — the same failure CLAUDE.md records
+ * for the `/uploads` proxy, arriving a day late instead of immediately.
+ */
+export async function storeNarration(app: FastifyInstance, narration: SceneNarration): Promise<string | null> {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "shikkha-narration-"));
+
+  try {
+    const outPath = path.join(workDir, "narration.m4a");
+    const transcoded = await withRenderSlot(() => transcodeNarration(uploadsPathFromUrl(narration.audioUrl), outPath));
+    if (!transcoded.ok) {
+      app.log.error({ sceneId: narration.sceneId, error: transcoded.error }, "Narration transcode failed");
+      return null;
+    }
+    const stored = await putMedia(`narration-${randomUUID()}.m4a`, await fs.readFile(outPath));
+    return stored.url;
+  } catch (err) {
+    app.log.error({ err, sceneId: narration.sceneId }, "Storing narration failed");
     return null;
   } finally {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
@@ -117,7 +154,7 @@ export async function assembleLessonFile(
       const muxedPath = path.join(workDir, `muxed-${index}.mp4`);
       await fs.writeFile(videoPath, scene.videoBuffer);
 
-      const muxed = await muxSceneAudio(videoPath, uploadsPathFromUrl(narration.audioUrl), muxedPath);
+      const muxed = await withRenderSlot(() => muxSceneAudio(videoPath, uploadsPathFromUrl(narration.audioUrl), muxedPath));
       if (!muxed.ok) {
         app.log.error({ sceneId: scene.sceneId, error: muxed.error }, "Scene mux failed");
         return null;
@@ -129,7 +166,7 @@ export async function assembleLessonFile(
     await fs.writeFile(listPath, muxedPaths.map(concatListLine).join("\n"), "utf8");
 
     const outPath = path.join(workDir, "lesson.mp4");
-    const concat = await concatScenes(listPath, outPath);
+    const concat = await withRenderSlot(() => concatScenes(listPath, outPath));
     if (!concat.ok) {
       app.log.error({ error: concat.error }, "Lesson concat failed");
       return null;

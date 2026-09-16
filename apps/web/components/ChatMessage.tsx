@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import remarkBreaks from "remark-breaks";
 import rehypeKatex from "rehype-katex";
-import { Volume2, Lightbulb, Sparkles, ListChecks, Calculator, GraduationCap, CornerDownRight, Maximize2, PlayCircle } from "lucide-react";
+import { Lightbulb, Sparkles, ListChecks, Calculator, GraduationCap, CornerDownRight, Maximize2, PlayCircle } from "lucide-react";
 import VisualSandbox, { type WidgetEvent } from "./VisualSandbox";
 import type { ResponseType, VideoBrief, VideoScript } from "../lib/types";
 
@@ -65,12 +64,6 @@ export function extractVisualHtml(content: string): { prose: string; html: strin
     return { prose: content.replace(BARE_VISUAL_TAG_PATTERN, "").trim(), html: bare[0] };
   }
   return { prose: content, html: null };
-}
-
-function speak(text: string): void {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 
 export interface ActionPill {
@@ -173,7 +166,6 @@ export default function ChatMessage({
 }): JSX.Element {
   const { prose, html: legacyHtml } = extractVisualHtml(message.content);
   const isAssistant = message.role === "assistant";
-  const [speaking, setSpeaking] = useState(false);
 
   // The first-class field wins; the regex scrape of `content` remains only as
   // the fallback for turns stored before visualHtml was persisted, and for
@@ -262,21 +254,6 @@ export default function ChatMessage({
           >
             <PlayCircle className="size-4" />
             ভিডিওটা দেখো
-          </button>
-        )}
-
-        {!message.streaming && (
-          <button
-            type="button"
-            onClick={() => {
-              setSpeaking(true);
-              speak(prose);
-              setTimeout(() => setSpeaking(false), 500);
-            }}
-            className="mt-3 flex items-center gap-1.5 text-xs font-medium text-on-surface-variant hover:text-primary transition-colors"
-          >
-            <Volume2 className="size-3.5" />
-            {speaking ? "পড়া হচ্ছে…" : "জোরে পড়ো"}
           </button>
         )}
 

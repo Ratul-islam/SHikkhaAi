@@ -3,6 +3,8 @@ import { env } from "../../config/env";
 import { embedText } from "../../lib/openai";
 import { searchLessonVideos } from "../../lib/vectorSearch";
 import type { DirectedScript } from "./director.schema";
+import type { LessonSceneView } from "./lesson-build.service";
+import type { WordTiming } from "../speech/edge-speech.service";
 
 /**
  * The shared lesson library and the spend ledger.
@@ -34,14 +36,70 @@ export const REUSE_SIMILARITY_THRESHOLD = 0.86;
 /** Rows written before the Manim pipeline: 4-8s veo/wan fragments. Never reused as lessons. */
 export const LEGACY_CLIP_KIND = "CLIP";
 export const LESSON_KIND = "LESSON";
+/**
+ * A lesson where some scenes fell back to caption cards. Saved so the student
+ * who waited for it can replay it, but never handed to anyone else: a fallback
+ * is usually a transient render failure, and a fresh build for the next student
+ * is the chance to produce a complete LESSON that then serves everybody.
+ */
+export const PARTIAL_KIND = "PARTIAL";
+
+/**
+ * What `LessonVideo.payload` holds — the lesson as the player consumes it, with
+ * every URL in durable storage.
+ */
+export interface StoredLessonPayload {
+  title: string;
+  scenes: LessonSceneView[];
+  lessonUrl?: string;
+  totalDurationMs: number;
+  timestampManifest: WordTiming[];
+  renderedSceneCount: number;
+}
+
+function readStoredPayload(value: unknown): StoredLessonPayload | null {
+  if (!value || typeof value !== "object") return null;
+  const p = value as Partial<StoredLessonPayload>;
+  if (typeof p.title !== "string" || !Array.isArray(p.scenes) || p.scenes.length === 0) return null;
+  if (typeof p.totalDurationMs !== "number" || !Array.isArray(p.timestampManifest)) return null;
+  return p as StoredLessonPayload;
+}
 
 export interface LibraryLesson {
   id: string;
-  url: string;
+  kind: string;
+  /** The assembled MP4, when there is one. */
+  url: string | null;
   durationSec: number;
   /** The DirectedScript it was built from, so a hit can replay beats and captions without re-directing. */
   script: DirectedScript | null;
+  /** The full playable lesson, when the row was written with one. */
+  payload: StoredLessonPayload | null;
   reused: true;
+}
+
+function toLibraryLesson(row: {
+  id: string;
+  kind: string;
+  url: string | null;
+  durationSec: number;
+  script: unknown;
+  payload: unknown;
+}): LibraryLesson {
+  return {
+    id: row.id,
+    kind: row.kind,
+    url: row.url,
+    durationSec: row.durationSec,
+    script: (row.script as DirectedScript | null) ?? null,
+    payload: readStoredPayload(row.payload),
+    reused: true,
+  };
+}
+
+/** A row is only playable with a stored payload or an assembled file. */
+function isPlayable(row: { url: string | null; payload: unknown }): boolean {
+  return Boolean(row.url) || readStoredPayload(row.payload) !== null;
 }
 
 export interface LessonLookup {
@@ -148,15 +206,34 @@ export async function findReusableLesson(app: FastifyInstance, req: LessonLookup
     });
     const unseen = candidates.filter((c) => !seenIds.has(c.id));
     const pick = unseen[0] ?? (req.wantsNewVariant ? null : candidates[0]);
-    if (!pick) return null;
-    return {
-      id: pick.id,
-      url: pick.url,
-      durationSec: pick.durationSec,
-      script: (pick.script as unknown as DirectedScript | null) ?? null,
-      reused: true,
-    };
+    if (pick && isPlayable(pick)) return toLibraryLesson(pick);
   }
+
+  // Exact concept match, before any embedding. Replaying a past turn sends the
+  // very brief that built the lesson, so its conceptKey is identical — and
+  // going through `embedText` for that meant a spent embedding quota (shared
+  // with chat and ingestion) made every saved lesson unfindable, so it was
+  // rebuilt from scratch. No threshold is involved: equal keys in the same
+  // grade triple are the same concept.
+  const exact = await app.prisma.lessonVideo.findMany({
+    where: {
+      classLevel: req.classLevel,
+      subject: req.subject,
+      chapter: req.chapter,
+      conceptKey: req.conceptKey,
+      kind: { in: [LESSON_KIND, PARTIAL_KIND] },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  const usable = exact.filter(
+    (row) =>
+      isPlayable(row) &&
+      // A PARTIAL belongs to the students who have already been shown it.
+      (row.kind === LESSON_KIND || seenIds.has(row.id)) &&
+      (!req.wantsNewVariant || !seenIds.has(row.id)),
+  );
+  const exactPick = usable.find((row) => row.kind === LESSON_KIND) ?? usable[0];
+  if (exactPick) return toLibraryLesson(exactPick);
 
   const queryEmbedding = await embedText(req.conceptKey);
   const matches = await searchLessonVideos(app, {
@@ -176,15 +253,8 @@ export async function findReusableLesson(app: FastifyInstance, req: LessonLookup
   // is what a replay needs, so it is fetched here rather than widening that
   // query for every caller.
   const row = await app.prisma.lessonVideo.findUnique({ where: { id: best.id } });
-  if (!row || row.kind !== LESSON_KIND) return null;
-
-  return {
-    id: row.id,
-    url: row.url,
-    durationSec: row.durationSec,
-    script: (row.script as unknown as DirectedScript | null) ?? null,
-    reused: true,
-  };
+  if (!row || row.kind !== LESSON_KIND || !isPlayable(row)) return null;
+  return toLibraryLesson(row);
 }
 
 /** Records that this student has now seen this lesson, for the variant logic above. */
@@ -213,14 +283,19 @@ export interface PublishLessonParams {
   chapter: number;
   nodeId?: string | null;
   script: DirectedScript;
-  url: string;
+  /** LESSON when every scene rendered, PARTIAL otherwise. */
+  kind: typeof LESSON_KIND | typeof PARTIAL_KIND;
+  /** The assembled MP4, when one could be built. */
+  url: string | null;
+  payload: StoredLessonPayload | null;
   durationSec: number;
   /** What this lesson cost to make — director + scene code + narration. Rendering contributes nothing. */
   costUsd: number;
 }
 
 /**
- * Shelves a finished lesson so the next student gets it for free.
+ * Shelves a finished lesson so the next student gets it for free — or, for a
+ * PARTIAL one, so at least the student who built it never loses it.
  *
  * The embedding is what makes it findable by meaning later, and it is written
  * with `$executeRaw` because Prisma's client cannot bind a `vector` literal —
@@ -230,15 +305,17 @@ export interface PublishLessonParams {
  */
 export async function publishLesson(app: FastifyInstance, params: PublishLessonParams): Promise<string | null> {
   try {
+    // Counted across BOTH kinds: `@@unique([nodeId, variantIndex])` spans every
+    // row, so numbering LESSONs alone would collide with a PARTIAL's index.
     const variantIndex = params.nodeId
-      ? await app.prisma.lessonVideo.count({ where: { nodeId: params.nodeId, kind: LESSON_KIND } })
+      ? await app.prisma.lessonVideo.count({ where: { nodeId: params.nodeId } })
       : await app.prisma.lessonVideo.count({
           where: {
             classLevel: params.classLevel,
             subject: params.subject,
             chapter: params.chapter,
             conceptKey: params.script.conceptKey,
-            kind: LESSON_KIND,
+            kind: { in: [LESSON_KIND, PARTIAL_KIND] },
           },
         });
 
@@ -249,9 +326,10 @@ export async function publishLesson(app: FastifyInstance, params: PublishLessonP
         chapter: params.chapter,
         nodeId: params.nodeId ?? null,
         conceptKey: params.script.conceptKey,
-        kind: LESSON_KIND,
+        kind: params.kind,
         sceneCount: params.script.scenes.length,
         script: params.script as unknown as object,
+        ...(params.payload ? { payload: params.payload as unknown as object } : {}),
         variantIndex,
         model: `manim-${env.MANIM_QUALITY}`,
         durationSec: Math.round(params.durationSec),

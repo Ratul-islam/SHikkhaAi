@@ -254,6 +254,25 @@ function releaseSlot(): void {
   waiting.shift()?.();
 }
 
+/**
+ * Runs other heavy media work — ffmpeg conform, mux, concat, narration
+ * transcode — under the SAME limit as a render.
+ *
+ * The semaphore used to cover Manim alone, so a conform (up to ~190MB even
+ * thread-capped) or a burst of narration transcodes could start on top of a
+ * live render. On a 512MB server that overlap is an OOM kill, not a slowdown.
+ * Never call this from inside renderScene or another withRenderSlot: the slot
+ * is not re-entrant, and nesting would wait on itself.
+ */
+export async function withRenderSlot<T>(work: () => Promise<T>): Promise<T> {
+  await acquireSlot();
+  try {
+    return await work();
+  } finally {
+    releaseSlot();
+  }
+}
+
 /* ── Health ─────────────────────────────────────────────────────────────────*/
 
 export interface HealthReport {

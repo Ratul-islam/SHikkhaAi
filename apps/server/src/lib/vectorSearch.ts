@@ -103,7 +103,7 @@ export async function searchDocumentChunks(
 
 export interface LessonVideoMatch {
   id: string;
-  url: string;
+  url: string | null;
   conceptKey: string;
   variantIndex: number;
   durationSec: number;
@@ -148,6 +148,10 @@ export async function searchLessonVideos(
         AND "subject" = ${subject}
         AND "chapter" = ${chapter}
         AND embedding IS NOT NULL
+        -- Only complete lessons are shared by meaning. Filtering here rather
+        -- than after the fact matters: a legacy CLIP or a PARTIAL ranked above
+        -- a real LESSON used to take one of the LIMIT slots and hide it.
+        AND kind = 'LESSON'
         ${excludeIds.length > 0 ? Prisma.sql`AND id <> ALL(${excludeIds})` : Prisma.empty}
       ORDER BY embedding <=> ${vectorLiteral}::vector
       LIMIT ${limit}
