@@ -1,6 +1,6 @@
 import { buildApp } from "./app";
 import { env } from "./config/env";
-import { checkRenderHealth } from "./modules/video/manim/render.service";
+import { checkRenderHealth, manimNamesFile } from "./modules/video/manim/render.service";
 
 const app = buildApp();
 
@@ -20,6 +20,14 @@ void checkRenderHealth()
       app.log.info(
         { manim: health.manimVersion, networkIsolation: health.networkIsolation },
         "Manim renderer ready",
+      );
+      // Pay the validator's one manim import now, after the probe's (never
+      // alongside it — two at once is ~250MB on a 512MB host), rather than
+      // inside the first student's lesson build.
+      void manimNamesFile().then((file) =>
+        file
+          ? app.log.info("Scene validator ready")
+          : app.log.warn("Scene validator name list unavailable — each validation will import manim"),
       );
     } else {
       app.log.error(

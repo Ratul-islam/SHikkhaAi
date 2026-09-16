@@ -228,6 +228,10 @@ export async function findReusableLesson(app: FastifyInstance, req: LessonLookup
   const usable = exact.filter(
     (row) =>
       isPlayable(row) &&
+      // A PARTIAL with no rendered scene at all is a text-only reel from a
+      // broken render environment; ignoring it lets the student get a real
+      // lesson built instead of replaying that forever.
+      (row.kind === LESSON_KIND || (readStoredPayload(row.payload)?.renderedSceneCount ?? 0) > 0) &&
       // A PARTIAL belongs to the students who have already been shown it.
       (row.kind === LESSON_KIND || seenIds.has(row.id)) &&
       (!req.wantsNewVariant || !seenIds.has(row.id)),

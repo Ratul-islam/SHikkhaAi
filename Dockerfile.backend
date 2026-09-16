@@ -65,5 +65,9 @@ EXPOSE 4000
 # as init), so without it every deploy would wait out the stop timeout and
 # SIGKILL mid-request. tini forwards the signal and reaps render children.
 WORKDIR /app/apps/server
+# The static routes for /uploads and /media are registered at boot, and
+# @fastify/static warns ("root path must exist") when the directories don't
+# exist yet. They're created here so they always do.
+RUN mkdir -p uploads media
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "dist/server.js"]

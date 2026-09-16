@@ -450,7 +450,11 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
       }
     : null;
 
-  if (storedPayload || (complete && lessonFile)) {
+  // ...except a build where NOTHING rendered. That is not a lesson with a
+  // gap, it's the render environment failing (every scene a caption card), and
+  // saving it pins the student to a text-only video for that concept: every
+  // later "watch" would replay it instead of trying again once the renderer works.
+  if ((storedPayload && renderedSceneCount > 0) || (complete && lessonFile)) {
     await publishLesson(app, {
       userId: req.userId,
       classLevel: req.classLevel,
@@ -465,7 +469,12 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
       costUsd: narrationBatch.totalCostUsd + 0.004,
     });
   } else {
-    app.log.warn({ conceptKey: script.conceptKey }, "Lesson not saved — narration could not be stored durably");
+    app.log.warn(
+      { conceptKey: script.conceptKey, renderedSceneCount, allAudioDurable },
+      renderedSceneCount === 0
+        ? "Lesson not saved — no scene rendered"
+        : "Lesson not saved — narration could not be stored durably",
+    );
   }
   endStage("publishMs");
 
@@ -474,7 +483,7 @@ async function runBuild(app: FastifyInstance, req: BuildRequest): Promise<Lesson
       conceptKey: script.conceptKey,
       scenes: built.length,
       renderedSceneCount,
-      saved: complete ? LESSON_KIND : storedPayload ? PARTIAL_KIND : "no",
+      saved: complete ? LESSON_KIND : storedPayload && renderedSceneCount > 0 ? PARTIAL_KIND : "no",
       totalMs: Date.now() - startedAt,
       ...stageMs,
     },

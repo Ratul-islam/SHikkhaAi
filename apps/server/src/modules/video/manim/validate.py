@@ -2,6 +2,9 @@
 
 Reads a Python module on stdin, prints a JSON verdict on stdout:
 
+    python validate.py [manim-names.json] < scene.py
+
+
     {"ok": true,  "errors": []}
     {"ok": false, "errors": ["line 12: import of 'os' is not allowed", ...]}
 
@@ -147,7 +150,7 @@ def called_name(node: ast.Call) -> str:
     return ""
 
 
-def manim_namespace() -> frozenset[str] | None:
+def manim_namespace(names_path: str | None = None) -> frozenset[str] | None:
     """Everything `from manim import *` actually provides.
 
     Used to catch INVENTED identifiers — the model writes `BROWN_D`, which does
@@ -160,7 +163,22 @@ def manim_namespace() -> frozenset[str] | None:
     rather than failing everything: this module's security rules must keep
     working against a broken venv, and an unknown-name check is a quality gate,
     not a safety one.
+
+    `names_path` is a JSON list of those names, written ONCE by the server.
+    Importing manim here on every validation cost ~124MB and, on a 0.1-CPU
+    host, 4s per scene — four scenes validating at once took 21s, past the
+    server's timeout, and every scene of every lesson was rejected with
+    "validator did not run: no output". Reading a list is instant and ~10MB.
+    The import below remains only as the fallback for running this by hand.
     """
+    if names_path:
+        try:
+            with open(names_path, "r", encoding="utf-8") as handle:
+                names = json.load(handle)
+            if isinstance(names, list) and names:
+                return frozenset(str(n) for n in names)
+        except (OSError, ValueError):
+            pass
     try:
         import manim  # noqa: PLC0415 — deliberately lazy; see the docstring
     except BaseException:
@@ -307,13 +325,13 @@ class Validator(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def validate(source: str) -> dict[str, object]:
+def validate(source: str, names_path: str | None = None) -> dict[str, object]:
     try:
         tree = ast.parse(source)
     except SyntaxError as exc:
         return {"ok": False, "errors": [f"line {exc.lineno or 0}: syntax error: {exc.msg}"]}
 
-    validator = Validator(manim_namespace())
+    validator = Validator(manim_namespace(names_path))
     validator.visit(tree)
     errors = validator.errors
 
@@ -350,7 +368,8 @@ def validate(source: str) -> dict[str, object]:
 
 def main() -> None:
     source = sys.stdin.read()
-    json.dump(validate(source), sys.stdout)
+    names_path = sys.argv[1] if len(sys.argv) > 1 else None
+    json.dump(validate(source, names_path), sys.stdout)
 
 
 if __name__ == "__main__":

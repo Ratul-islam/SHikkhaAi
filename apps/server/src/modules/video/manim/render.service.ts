@@ -192,6 +192,47 @@ function runSandboxed(
 
 /* ── Layer 1: validation ────────────────────────────────────────────────────*/
 
+let manimNamesPromise: Promise<string | null> | null = null;
+
+/**
+ * Writes `from manim import *`'s names to a file, once per process, for
+ * validate.py's invented-identifier check (see manim_namespace() there).
+ *
+ * The file is written by THIS process into its own temp directory; the
+ * sandboxed validator only reads it. Null when manim can't be imported — the
+ * validator then falls back to its own import, which is the old behaviour.
+ */
+export function manimNamesFile(): Promise<string | null> {
+  manimNamesPromise ??= (async () => {
+    const jobDir = await fs.mkdtemp(path.join(os.tmpdir(), "shikkha-manim-names-"));
+    try {
+      const outcome = await runSandboxed(
+        env.MANIM_PYTHON,
+        [
+          PYTHON_ISOLATION_FLAG,
+          "-c",
+          "import json, sys, manim; json.dump(sorted(getattr(manim, '__all__', None) or dir(manim)), sys.stdout)",
+        ],
+        { cwd: jobDir, env: sandboxEnv(jobDir), timeoutMs: 120_000 },
+      );
+      const names = JSON.parse(outcome.stdout) as unknown;
+      if (outcome.code !== 0 || !Array.isArray(names) || names.length === 0) return null;
+      const filePath = path.join(os.tmpdir(), `shikkha-manim-names-${process.pid}.json`);
+      await fs.writeFile(filePath, JSON.stringify(names), "utf8");
+      return filePath;
+    } catch {
+      return null;
+    } finally {
+      await fs.rm(jobDir, { recursive: true, force: true }).catch(() => undefined);
+    }
+  })().then((result) => {
+    // A failed attempt is not cached, so a slow first boot can succeed later.
+    if (!result) manimNamesPromise = null;
+    return result;
+  });
+  return manimNamesPromise;
+}
+
 export interface ValidationResult {
   ok: boolean;
   errors: string[];
@@ -208,18 +249,30 @@ export interface ValidationResult {
 export async function validateSceneSource(source: string): Promise<ValidationResult> {
   const jobDir = await fs.mkdtemp(path.join(os.tmpdir(), "shikkha-validate-"));
   try {
-    const outcome = await runSandboxed(env.MANIM_PYTHON, [PYTHON_ISOLATION_FLAG, VALIDATOR()], {
-      cwd: jobDir,
-      env: sandboxEnv(jobDir),
-      timeoutMs: 15_000,
-      input: source,
-    });
+    const namesPath = await manimNamesFile();
+    const outcome = await runSandboxed(
+      env.MANIM_PYTHON,
+      [PYTHON_ISOLATION_FLAG, VALIDATOR(), ...(namesPath ? [namesPath] : [])],
+      {
+        cwd: jobDir,
+        env: sandboxEnv(jobDir),
+        // Generous on purpose. The validator itself is milliseconds now, but a
+        // 0.1-CPU host shares that sliver with the server, narration and any
+        // render in progress — and a timeout here rejects a perfectly good scene.
+        timeoutMs: 60_000,
+        input: source,
+      },
+    );
 
     if (outcome.code !== 0 || !outcome.stdout.trim()) {
-      return {
-        ok: false,
-        errors: [`validator did not run: ${(outcome.stderr || "no output").slice(0, 400)}`],
-      };
+      // Say WHICH way it failed. A bare "no output" hid that the process was
+      // being killed, which is a host-capacity problem, not a code problem.
+      const why = outcome.timedOut
+        ? "timed out (host CPU starved?)"
+        : outcome.code === null
+          ? "killed by a signal (out of memory?)"
+          : (outcome.stderr || `exited ${outcome.code} with no output`).slice(0, 400);
+      return { ok: false, errors: [`validator did not run: ${why}`] };
     }
 
     const parsed = JSON.parse(outcome.stdout) as ValidationResult;
